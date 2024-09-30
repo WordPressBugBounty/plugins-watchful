@@ -13,6 +13,7 @@
 namespace Watchful;
 
 use Watchful\Helpers\InstalledPlugins;
+use Watchful\Helpers\PluginManager;
 use WP_REST_Request;
 
 if (!defined('ABSPATH')) {
@@ -31,26 +32,19 @@ class Init
      */
     public static function activation()
     {
-        // Generate Watchful Key.
-        $watchful_key = wp_generate_password(32, false);
-
         // Create the option if they don't exist.
         if (!get_option('watchfulSettings')) {
             update_option(
                 'watchfulSettings',
-                array(
-                    'watchful_version' => WATCHFUL_VERSION,
-                    'watchfulSecretKey' => $watchful_key,
-                    'watchful_disable_timestamp' => 0,
-                    'watchful_maintenance' => 0,
-                    'watchful_sso_authentication' => 1,
-                )
+                self::get_default_settings()
             );
         }
 
         $rest_api_in_core = class_exists('WP_REST_Server', false);
 
         if (!$rest_api_in_core) {
+            $plugin_manager = new PluginManager();
+
             // Install rest-api if missing.
             $plugins = new Controller\Plugins();
             $request = new WP_REST_Request();
@@ -60,7 +54,7 @@ class Init
             // Required cause it doesn't take the default value of the route.
             $request->set_param('status', 1);
 
-            if (!$plugins->isInstalled($slug)) {
+            if (!$plugin_manager->is_installed($slug)) {
                 $plugins->install_plugin($request);
             } else {
                 $plugins->activate_plugin($request);
@@ -68,6 +62,19 @@ class Init
         }
 
         add_option('watchfulDoActivationRedirect', true);
+    }
+
+    public static function get_default_settings()
+    {
+        $watchful_key = wp_generate_password(32, false);
+
+        return array(
+            'watchful_version' => WATCHFUL_VERSION,
+            'watchfulSecretKey' => $watchful_key,
+            'watchful_disable_timestamp' => 0,
+            'watchful_maintenance' => 0,
+            'watchful_sso_authentication' => 1,
+        );
     }
 
     /**
@@ -97,6 +104,13 @@ class Init
      */
     public static function admin_init()
     {
+        if (!get_option('watchfulSettings')) {
+            update_option(
+                'watchfulSettings',
+                self::get_default_settings()
+            );
+        }
+
         if (!get_option('watchfulDoActivationRedirect', false)) {
             return;
         }

@@ -117,7 +117,7 @@ class Settings
      */
     public function print_watchful_form()
     {
-        $settings = get_option('watchfulSettings', '000');
+        $settings = get_option('watchfulSettings', Init::get_default_settings());
         ?>
         <h3><?php
             esc_html_e('Add site to Watchful', 'watchful'); ?></h3>

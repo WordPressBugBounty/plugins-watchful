@@ -5,6 +5,7 @@ namespace Watchful\Helpers\Sso;
 use stdClass;
 use Watchful\Helpers\Connection;
 use Watchful\Helpers\WatchfulEncrypt;
+use Watchful\Init;
 use WP_Error;
 
 class Client
@@ -21,7 +22,7 @@ class Client
     {
         $this->connection_helper = new Connection();
 
-        $settings = get_option('watchfulSettings', '000');
+        $settings = get_option('watchfulSettings', Init::get_default_settings());
         $this->secret_key = $settings['watchfulSecretKey'];
     }
 

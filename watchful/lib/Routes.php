@@ -42,7 +42,7 @@ class Routes
      */
     public static function authentification(WP_REST_Request $request)
     {
-        $settings = get_option('watchfulSettings', '000');
+        $settings = get_option('watchfulSettings', Init::get_default_settings());
         $private_key = $settings['watchfulSecretKey'];
         $authentification = new Authentification(
             $private_key,

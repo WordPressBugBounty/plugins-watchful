@@ -2,6 +2,7 @@
 
 namespace Watchful\Helpers\Sso;
 
+use Watchful\Init;
 use WP_Error;
 use WP_User;
 
@@ -27,7 +28,7 @@ class Authenticator
         $this->client = new Client();
         $this->user_manager = new UserManager();
 
-        $settings = get_option('watchfulSettings', '000');
+        $settings = get_option('watchfulSettings', Init::get_default_settings());
         $this->sso_enabled = isset($settings['watchful_sso_authentication']) && $settings['watchful_sso_authentication'];
         $this->sso_adminonly = isset($settings['watchful_sso_authentication_adminonly']) && $settings['watchful_sso_authentication_adminonly'];
     }
