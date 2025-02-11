@@ -241,7 +241,12 @@ class PluginManager
                 $upgrader->maintenance_mode();
             }
 
-            $this->handle_update_error($handle_shutdown, $plugin_path, $plugin_backup_manager, $e->getMessage());
+            $this->handle_update_error(
+                $handle_shutdown,
+                $plugin_path,
+                $plugin_backup_manager,
+                $e->getMessage()
+            );
         }
 
         if (is_wp_error($result)) {

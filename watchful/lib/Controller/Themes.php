@@ -16,6 +16,7 @@ use Theme_Upgrader;
 use Watchful\Exception;
 use Watchful\Helpers\Authentification;
 use Watchful\Helpers\Files as FilesHelper;
+use Watchful\Helpers\ThemeUpdater;
 use Watchful\Skins\SkinThemeUpgrader;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -36,6 +37,12 @@ if (!defined('ABSPATH')) {
  */
 class Themes implements BaseControllerInterface
 {
+    private $theme_updater;
+
+    public function __construct()
+    {
+        $this->theme_updater = new ThemeUpdater();
+    }
 
     /**
      * Register watchful routes for WP API v2.
@@ -91,6 +98,41 @@ class Themes implements BaseControllerInterface
         );
     }
 
+    private function parse_install_update_request_params(WP_REST_Request $request)
+    {
+        $params = array(
+            'slug' => $request->get_param('slug'),
+            'zip' => $request->get_param('zip'),
+            'enable_maintenance_mode' => false,
+            'handle_shutdown' => false,
+            'new_version' => null
+        );
+
+        $body = $request->get_body();
+
+        if (!empty($body)) {
+            $post_data = json_decode($body);
+
+            if (!empty($post_data) && !empty($post_data->package)) {
+                $params['zip'] = $post_data->package;
+            }
+
+            if (!empty($post_data) && !empty($post_data->maintenance_mode)) {
+                $params['enable_maintenance_mode'] = (bool)$post_data->maintenance_mode;
+            }
+
+            if (!empty($post_data) && !empty($post_data->handle_shutdown)) {
+                $params['handle_shutdown'] = (bool)$post_data->handle_shutdown;
+            }
+
+            if (!empty($post_data) && !empty($post_data->new_version)) {
+                $params['new_version'] = $post_data->new_version;
+            }
+        }
+
+        return $params;
+    }
+
     /**
      * Update a theme from his slug.
      *
@@ -107,226 +149,17 @@ class Themes implements BaseControllerInterface
         require_once ABSPATH.WPINC.'/theme.php';
         require_once ABSPATH.'wp-admin/includes/class-wp-upgrader.php';
 
-        $body = $request->get_body();
+        $params = $this->parse_install_update_request_params($request);
 
-        $enable_maintenance_mode = false;
-        $new_version = null;
-        if (!empty($body)) {
-            $post_data = json_decode($body);
-
-            if (!empty($post_data) && !empty($post_data->package)) {
-                $zip = $post_data->package;
-            }
-
-            if (!empty($post_data) && !empty($post_data->maintenance_mode)) {
-                $enable_maintenance_mode = (bool)$post_data->maintenance_mode;
-            }
-
-            if (!empty($post_data) && !empty($post_data->new_version)) {
-                $new_version = $post_data->new_version;
-            }
-        }
-
-        $slug = $request->get_param('slug');
-
-        if (empty($zip)) {
-            // Has this if coming from install route with zip parameter.
-            $zip = $request->get_param('zip');
-        }
-
-        if (empty($slug) && empty($zip)) {
-            throw new Exception('parameter is missing. slug required or zip', 400);
-        }
-
-        if (defined('DISALLOW_FILE_MODS') && DISALLOW_FILE_MODS) {
-            throw new Exception('file modification is disabled (DISALLOW_FILE_MODS)', 403);
-        }
-
-        // If slug is missing we need to get it from the zip.
-        if ($zip && !$slug) {
-            $slug = $this->get_slug_from_zip($zip);
-        }
-
-        // Force a theme update check.
-        wp_update_themes();
-        $skin = new SkinThemeUpgrader();
-        $upgrader = new Theme_Upgrader($skin);
-
-        $min_php_version = $this->next_version_info($slug);
-
-        if ($zip) {
-            $this->update_from_zip($zip, $slug, $new_version);
-        }
-
-        if (version_compare(phpversion(), $min_php_version) < 0) {
-            throw new Exception("The minimum required PHP version for this update is ".$min_php_version, 500);
-        }
-
-        if ($enable_maintenance_mode) {
-            WP_Filesystem();
-            $upgrader->maintenance_mode(true);
-        }
-
-        try {
-            $result = $upgrader->upgrade($slug);
-            if ($enable_maintenance_mode) {
-                $upgrader->maintenance_mode(false);
-            }
-        } catch (Exception $e) {
-            if ($enable_maintenance_mode) {
-                $upgrader->maintenance_mode(false);
-            }
-            throw new Exception(
-                $e->getMessage(),
-                500,
-                [
-                    'theme' => $slug,
-                    'is_installed' => $this->is_installed($slug),
-                ]
-            );
-        }
-
-        if (is_wp_error($result)) {
-            throw new Exception(
-                $result->get_error_code(),
-                500,
-                [
-                    'wp_error_data' => $result->get_error_message(),
-                    'theme' => $slug,
-                    'is_installed' => $this->is_installed($slug),
-                ]
-            );
-        }
-        if (is_wp_error($skin->error)) {
-            throw new Exception(
-                $skin->error->get_error_code(),
-                500,
-                [
-                    'wp_error_data' => $skin->error->get_error_message(),
-                    'theme' => $slug,
-                    'is_installed' => $this->is_installed($slug),
-                ]
-            );
-        }
-
-        // This default Exception should not be thrown because WP_Errors should be encountered just above.
-        if (false === $result || is_null($result)) {
-            throw new Exception(
-                'unknown error',
-                400,
-                [
-                    'theme' => $slug,
-                    'is_installed' => $this->is_installed($slug),
-                ]
-            );
-        }
-
-        return new WP_REST_Response([
-                                        'status' => 'success',
-                                        'version' => wp_get_theme($slug)['Version'],
-                                    ]);
-    }
-
-    /**
-     * Get the slug of a theme from his zip file.
-     *
-     * @param string $zip The zip file.
-     *
-     * @return bool
-     */
-    private function get_slug_from_zip($zip)
-    {
-        $helper = new FilesHelper();
-
-        $this->potential_slugs = $helper->get_zip_directories($zip);
-
-        return $this->get_slug_from_list($this->potential_slugs);
-    }
-
-    /**
-     * Get the correct slug from a given list.
-     *
-     * @param array $list List of slugs.
-     *
-     * @return string|bool
-     */
-    private function get_slug_from_list($list)
-    {
-        foreach ($list as $slug) {
-            if ($this->is_installed($slug)) {
-                return $slug;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Check if a theme is already installed.
-     *
-     * @param string $slug The theme slug.
-     *
-     * @return bool
-     */
-    public function is_installed($slug)
-    {
-        $themes = wp_get_themes();
-
-        foreach ($themes as $path => $theme) {
-            if ($path === $slug || in_array($slug, explode('/', $path), true)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function next_version_info($slug)
-    {
-        $current = get_site_transient('update_themes');
-
-        if (isset($current->response[$slug])) {
-            return $current->response[$slug]['requires_php'];
-        }
-
-        return phpversion();
-    }
-
-    /**
-     * Override the zip file in the themes list used by the upgrader.
-     *
-     * @param string $zip The zip file.
-     * @param string $slug The theme path.
-     */
-    private function update_from_zip($zip, $slug, $new_version = null)
-    {
-        $current = get_site_transient('update_themes');
-
-        if (!isset($current->response[$slug]) && !$new_version) {
-            return;
-        }
-
-        $theme = wp_get_theme($slug);
-        if (empty($theme)) {
-            return;
-        }
-
-        add_filter('pre_set_site_transient_update_themes', function ($value) use ($theme, $zip, $slug, $new_version) {
-            $template = $theme->get_template();
-            if (!isset($value->response[$template])) {
-                $value->response[$template] = [
-                    'theme' => $template,
-                    'new_version' => $new_version,
-                    'url' => $theme->get('ThemeURI'),
-                ];
-            }
-
-            $value->response[$slug]['package'] = $zip;
-
-            return $value;
-        });
-
-        set_site_transient('update_themes', $current);
+        return new WP_REST_Response(
+            $this->theme_updater->update_theme(
+                $params['slug'],
+                $params['zip'],
+                $params['enable_maintenance_mode'],
+                $params['handle_shutdown'],
+                $params['new_version']
+            )
+        );
     }
 
     /**
