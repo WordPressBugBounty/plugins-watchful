@@ -2,7 +2,7 @@
 Contributors: watchful
 Tags: manage multiple sites, Wordpress Dashboard, backup, WordPress manager, WordPress management, site management, watchful, remote administration, multiple wordpress
 Requires at least: 4.4
-Tested up to: 6.7
+Tested up to: 6.7.2
 Requires PHP: 5.6
 Stable tag: 1.5.0
 License: GPLv2 or later
@@ -82,6 +82,9 @@ The Forever Free account at Watchful will allow you to manage and perform mainte
 Watchful launched in 2012 and began supporting WordPress in 2017.
 
 == Changelog ==
+= v1.8.1 =
+* Fix a bug that threw an error while auto-updating translations after a plugin update
+
 = v1.8.0 =
 * Add backup and restore system for theme updates
 * Fix warning about undefined constant

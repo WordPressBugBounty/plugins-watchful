@@ -72,6 +72,8 @@ class PluginManager
             $upgrader->maintenance_mode(true);
         }
 
+        remove_action('upgrader_process_complete', array('Language_Pack_Upgrader', 'async_upgrade'), 20);
+
         try {
             $result = $upgrader->install($install_path);
             if ($enable_maintenance_mode) {
@@ -230,6 +232,8 @@ class PluginManager
         if ($handle_shutdown) {
             $plugin_backup_manager->make_backup($plugin_path);
         }
+
+        remove_action('upgrader_process_complete', array('Language_Pack_Upgrader', 'async_upgrade'), 20);
 
         try {
             $result = $upgrader->upgrade($plugin_path);
