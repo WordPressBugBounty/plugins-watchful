@@ -10,6 +10,14 @@ use Watchful\Skins\SkinPluginUpgrader;
 
 class PluginManager
 {
+    private $logger;
+
+    public function __construct()
+    {
+        $this->logger = new Logger();
+    }
+
+
     /**
      * @param string|null $slug
      * @param string|null $zip
@@ -31,23 +39,43 @@ class PluginManager
             require_once ABSPATH.'wp-admin/includes/file.php';
         }
 
+        $this->logger->log('Installing plugin', [
+            'slug' => $slug,
+            'zip' => $zip,
+            'enable_maintenance_mode' => $enable_maintenance_mode,
+            'handle_shutdown' => $handle_shutdown,
+        ]);
+
         if (!$slug && !$zip) {
+            $this->logger->log('parameter is missing. slug or zip required', [
+                'slug' => $slug,
+                'zip' => $zip,
+            ],                 Logger::WARNING);
             throw new Exception('parameter is missing. slug or zip required', 400);
         }
 
         if (defined('DISALLOW_FILE_MODS') && DISALLOW_FILE_MODS) {
+            $this->logger->log('file modification is disabled (DISALLOW_FILE_MODS)', [], Logger::WARNING);
             throw new Exception('file modification is disabled (DISALLOW_FILE_MODS)', 403);
         }
 
         if ($zip) {
             $install_path = $zip;
             $slug = $this->get_slug_from_zip($zip);
+
+            $this->logger->log('Got slug from zip', [
+                'slug' => $slug,
+            ]);
         }
 
         if (
             $slug &&
             $this->is_installed($slug)
         ) {
+            $this->logger->log('Plugin already installed, updating instead', [
+                'slug' => $slug,
+            ]);
+
             $this->update_plugin($slug, $zip, $enable_maintenance_mode, $handle_shutdown);
 
             return;
@@ -55,9 +83,18 @@ class PluginManager
 
         if (empty($install_path)) {
             $install_path = $this->download_link_from_slug($slug);
+
+            $this->logger->log('Got download link from slug', [
+                'install_path' => $install_path,
+            ]);
         }
 
         if (empty($install_path)) {
+            $this->logger->log('Could not get install path', [
+                'slug' => $slug,
+                'zip' => $zip,
+            ],                 Logger::ERROR);
+
             throw new Exception('Could not get install path', 500, [
                 'slug' => $slug,
                 'zip' => $zip,
@@ -70,16 +107,30 @@ class PluginManager
         if ($enable_maintenance_mode) {
             WP_Filesystem();
             $upgrader->maintenance_mode(true);
+
+            $this->logger->log('Enabled maintenance mode');
         }
 
         remove_action('upgrader_process_complete', array('Language_Pack_Upgrader', 'async_upgrade'), 20);
 
         try {
+            $this->logger->log('Installing plugin', [
+                'install_path' => $install_path,
+            ]);
+
             $result = $upgrader->install($install_path);
             if ($enable_maintenance_mode) {
                 $upgrader->maintenance_mode();
             }
         } catch (\Exception $e) {
+            $this->logger->log('Installation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'slug' => $slug,
+                'zip' => $zip,
+                'install_path' => $install_path,
+            ],                 Logger::ERROR);
+
             if ($enable_maintenance_mode) {
                 $upgrader->maintenance_mode();
             }
@@ -88,6 +139,14 @@ class PluginManager
         }
 
         if (is_wp_error($result)) {
+            $this->logger->log('Got WP error during installation', [
+                'error' => $result->get_error_message(),
+                'data' => $skin->error->get_all_error_data(),
+                'slug' => $slug,
+                'zip' => $zip,
+                'install_path' => $install_path,
+            ],                 Logger::ERROR);
+
             throw new Exception('Installation of the plugin failed', 400, [
                 'error' => $result->get_error_message(),
                 'slug' => $slug,
@@ -97,6 +156,14 @@ class PluginManager
         }
 
         if (is_wp_error($skin->error)) {
+            $this->logger->log('Got WP error during installation', [
+                'error' => $skin->error->get_error_message(),
+                'data' => $skin->error->get_all_error_data(),
+                'slug' => $slug,
+                'zip' => $zip,
+                'install_path' => $install_path,
+            ],                 Logger::ERROR);
+
             throw new Exception('Installation of the plugin failed', 400, [
                 'error' => $skin->error->get_error_message(),
                 'slug' => $slug,
@@ -106,10 +173,41 @@ class PluginManager
         }
 
         if (false === $result) {
+            $this->logger->log('Installation failed', [
+                'slug' => $slug,
+                'zip' => $zip,
+                'install_path' => $install_path,
+            ],                 Logger::ERROR);
+
             throw new Exception('unknown error', 500);
         }
 
-        activate_plugin($this->get_plugin_path($slug), '', false, true);
+        $this->logger->log('Plugin installed', [
+            'slug' => $slug,
+            'zip' => $zip,
+            'install_path' => $install_path,
+        ]);
+
+        $activation = activate_plugin($this->get_plugin_path($slug), '', false, true);
+
+        if ($activation === null) {
+            $this->logger->log('Plugin activated', [
+                'slug' => $slug,
+            ]);
+
+            return;
+        }
+
+        $this->logger->log('Plugin activation failed', [
+            'slug' => $slug,
+            'error' => $activation->get_error_messages(),
+            'data' => $activation->get_all_error_data(),
+        ],                 Logger::ERROR);
+
+        throw new Exception('Plugin activation failed', 400, [
+            'slug' => $slug,
+            'error' => $activation->get_error_message(),
+        ]);
     }
 
     /**
@@ -182,6 +280,13 @@ class PluginManager
         $enable_maintenance_mode = false,
         $handle_shutdown = false
     ) {
+        $this->logger->log('Received request to update plugin', [
+            'plugin_path' => $plugin_path,
+            'zip' => $zip,
+            'enable_maintenance_mode' => $enable_maintenance_mode,
+            'handle_shutdown' => $handle_shutdown,
+        ]);
+
         include_once ABSPATH.'wp-admin/includes/admin.php';
         require_once ABSPATH.'wp-admin/includes/plugin.php';
         include_once ABSPATH.WPINC.'/update.php';
@@ -191,23 +296,25 @@ class PluginManager
         }
 
         if (empty($plugin_path) && empty($zip)) {
-            throw new Exception('parameter is missing. slug or zip required', 400);
+            $this->logger->log('parameter is missing. plugin_path or zip required', [], Logger::WARNING);
+            throw new Exception('parameter is missing. plugin_path or zip required', 400);
         }
 
         if (defined('DISALLOW_FILE_MODS') && DISALLOW_FILE_MODS) {
+            $this->logger->log('file modification is disabled (DISALLOW_FILE_MODS)', [], Logger::WARNING);
             throw new Exception('file modification is disabled (DISALLOW_FILE_MODS)', 403);
         }
 
-        // If slug is missing we need to get it from the zip.
         if ($zip && !$plugin_path) {
             $plugin_path = $this->get_slug_from_zip($zip);
+            $this->logger->log('Got plugin_path from zip', [
+                'plugin_path' => $plugin_path,
+            ]);
         }
 
-        // Get the current state.
         $is_active = is_plugin_active($plugin_path);
         $is_active_network = is_plugin_active_for_network($plugin_path);
 
-        // Force a plugin update check.
         wp_update_plugins();
 
         $skin = new SkinPluginUpgrader();
@@ -221,21 +328,33 @@ class PluginManager
         }
 
         if (version_compare(phpversion(), $min_php_version) < 0) {
+            $this->logger->log('PHP version is too low for this update', [
+                'required_version' => $min_php_version,
+                'current_version' => phpversion(),
+            ],                 Logger::ERROR);
             throw new Exception("The minimum required PHP version for this update is ".$min_php_version, 500);
         }
 
         if ($enable_maintenance_mode) {
             WP_Filesystem();
             $upgrader->maintenance_mode(true);
+            $this->logger->log('Enabled maintenance mode');
         }
 
         if ($handle_shutdown) {
-            $plugin_backup_manager->make_backup($plugin_path);
+            $result = $plugin_backup_manager->make_backup($plugin_path);
+            $this->logger->log('Backup created', [
+                'plugin_path' => $plugin_path,
+                'result' => $result,
+            ]);
         }
 
         remove_action('upgrader_process_complete', array('Language_Pack_Upgrader', 'async_upgrade'), 20);
 
         try {
+            $this->logger->log('Updating plugin', [
+                'plugin_path' => $plugin_path,
+            ]);
             $result = $upgrader->upgrade($plugin_path);
             if ($enable_maintenance_mode) {
                 $upgrader->maintenance_mode();
@@ -244,7 +363,11 @@ class PluginManager
             if ($enable_maintenance_mode) {
                 $upgrader->maintenance_mode();
             }
-
+            $this->logger->log('Update failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'plugin_path' => $plugin_path,
+            ],                 Logger::ERROR);
             $this->handle_update_error(
                 $handle_shutdown,
                 $plugin_path,
@@ -254,6 +377,11 @@ class PluginManager
         }
 
         if (is_wp_error($result)) {
+            $this->logger->log('Got WP error during update', [
+                'plugin_path' => $plugin_path,
+                'error' => $result->get_error_messages(),
+                'data' => $result->get_all_error_data(),
+            ],                 Logger::ERROR);
             $this->handle_update_error(
                 $handle_shutdown,
                 $plugin_path,
@@ -264,6 +392,11 @@ class PluginManager
         }
 
         if (is_wp_error($skin->error)) {
+            $this->logger->log('Got WP error during update', [
+                'plugin_path' => $plugin_path,
+                'error' => $skin->error->get_error_messages(),
+                'data' => $result->get_all_error_data(),
+            ],                 Logger::ERROR);
             $this->handle_update_error(
                 $handle_shutdown,
                 $plugin_path,
@@ -273,17 +406,25 @@ class PluginManager
             );
         }
 
-        // This default Exception should not be thrown because WP_Errors should be encountered just above.
         if (false === $result || is_null($result)) {
+            $this->logger->log('Update failed with unknown error', [
+                'plugin_path' => $plugin_path,
+            ],                 Logger::ERROR);
             $this->handle_update_error($handle_shutdown, $plugin_path, $plugin_backup_manager, 'unknown error');
         }
 
-        // Reactivate the plugin if he was active.
         if ($is_active) {
             activate_plugin($plugin_path, '', $is_active_network, true);
+            $this->logger->log('Plugin reactivated', [
+                'plugin_path' => $plugin_path,
+            ]);
         }
 
         $plugin_backup_manager->cleanup();
+        $this->logger->log('Plugin update completed successfully', [
+            'plugin_path' => $plugin_path,
+            'version' => get_plugin_data(WP_PLUGIN_DIR.'/'.$plugin_path)['Version'],
+        ]);
 
         return [
             'status' => 'success',

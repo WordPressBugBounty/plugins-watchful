@@ -117,9 +117,8 @@ class PluginBackupManager
     private function get_backup_dir()
     {
         $this->init_fs();
-        global $wp_filesystem;
 
-        return $wp_filesystem->wp_content_dir().'watchful-upgrade-temp-backup/';
+        return WATCHFUL_PLUGIN_CONTENT_DIR.DIRECTORY_SEPARATOR.'temp-backup/';
     }
 
     public function restore_backup()

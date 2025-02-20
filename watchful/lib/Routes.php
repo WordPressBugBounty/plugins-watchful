@@ -16,11 +16,13 @@ use Watchful\Controller\Audit;
 use Watchful\Controller\Backups;
 use Watchful\Controller\Core;
 use Watchful\Controller\Files;
+use Watchful\Controller\Logs;
 use Watchful\Controller\Plugins;
 use Watchful\Controller\Tests;
 use Watchful\Controller\Themes;
 use Watchful\Controller\Validation;
 use Watchful\Helpers\Authentification;
+use Watchful\Helpers\Logger;
 use WP_REST_Request;
 
 if (!defined('ABSPATH')) {
@@ -63,6 +65,7 @@ class Routes
     {
         new ExceptionHandler();
         new ShutdownHandler();
+        $logger = new Logger();
 
         $scanner = new Audit();
         $scanner->register_routes();
@@ -87,5 +90,8 @@ class Routes
 
         $validation = new Validation();
         $validation->register_routes();
+
+        $logs = new Logs();
+        $logs->register_routes();
     }
 }
