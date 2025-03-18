@@ -1,9 +1,9 @@
 === Remote Website Management Plugin by Watchful ===
 Contributors: watchful
 Tags: manage multiple sites, Wordpress Dashboard, backup, WordPress manager, WordPress management, site management, watchful, remote administration, multiple wordpress
-Requires at least: 4.4
+Requires at least: 4.6
 Tested up to: 6.7.2
-Requires PHP: 5.6
+Requires PHP: 7.2
 Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -82,6 +82,20 @@ The Forever Free account at Watchful will allow you to manage and perform mainte
 Watchful launched in 2012 and began supporting WordPress in 2017.
 
 == Changelog ==
+= v2.0.3 =
+* Add logs to backup processor class
+* ignore backup folders from other vendors
+
+= v2.0.2 =
+* Add a lock manager to prevent multiple update / install processes at the same time
+
+= v2.0.1 =
+* Filter DB tables to backup on WP related tables
+
+= v2.0.0 =
+* Change minimum PHP version to 7.2
+* Implement site backups
+
 = v1.8.2 =
 * Add logs to update process to improve debug
 * Add endpoint to retrieve logs

@@ -19,6 +19,7 @@ use Ai1wm_Status_Controller;
 use Watchful\Exception;
 use Watchful\Helpers\Authentification;
 use Watchful\Helpers\BackupPluginHelper;
+use Watchful\Helpers\BackupPlugins\WatchfulBackupPlugin;
 use Watchful\Helpers\BackupPlugins\XClonerBackupPlugin;
 use WP_REST_Request;
 use WP_REST_Server;
@@ -192,6 +193,78 @@ class Backups implements BaseControllerInterface
                 ),
             )
         );
+        register_rest_route(
+            'watchful/v1',
+            '/backup/watchful',
+            array(
+                array(
+                    'methods' => WP_REST_Server::CREATABLE,
+                    'callback' => array($this, 'execute_watchful_backup'),
+                    'permission_callback' => array('Watchful\Routes', 'authentification'),
+                    'args' => Authentification::get_arguments(),
+                ),
+            )
+        );
+        register_rest_route(
+            'watchful/v1',
+            '/backup/watchful/step',
+            array(
+                array(
+                    'methods' => WP_REST_Server::CREATABLE,
+                    'callback' => array($this, 'step_watchful_backup'),
+                    'permission_callback' => array('Watchful\Routes', 'authentification'),
+                    'args' => array_merge(
+                        Authentification::get_arguments(),
+                        array(
+                            'archive' => array(
+                                'default' => null,
+                            ),
+                            'priority' => array(
+                                'default' => null,
+                            ),
+                        )
+                    ),
+                ),
+            )
+        );
+        register_rest_route(
+            'watchful/v1',
+            '/backup/watchful/list',
+            array(
+                array(
+                    'methods' => WP_REST_Server::READABLE,
+                    'callback' => array($this, 'list_watchful_backup'),
+                    'permission_callback' => array('Watchful\Routes', 'authentification'),
+                    'args' => array_merge(
+                        Authentification::get_arguments(),
+                        array(
+                            'limit' => array(
+                                'default' => null,
+                            ),
+                        )
+                    ),
+                ),
+            )
+        );
+        register_rest_route(
+            'watchful/v1',
+            '/backup/watchful/data',
+            array(
+                array(
+                    'methods' => WP_REST_Server::READABLE,
+                    'callback' => array($this, 'data_watchful'),
+                    'permission_callback' => array('Watchful\Routes', 'authentification'),
+                    'args' => array_merge(
+                        Authentification::get_arguments(),
+                        array(
+                            'limit' => array(
+                                'default' => null,
+                            ),
+                        )
+                    ),
+                ),
+            )
+        );
     }
 
     /**
@@ -336,5 +409,54 @@ class Backups implements BaseControllerInterface
         return [
             'remote_storage' => (new XClonerBackupPlugin)->get_available_remote_storage(),
         ];
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function execute_watchful_backup()
+    {
+        return rest_ensure_response(
+            (new WatchfulBackupPlugin())->start_backup()
+        );
+    }
+
+    /**
+     * Continues previously started backup process
+     *
+     * @param WP_REST_Request $request
+     * @return array
+     * @throws Exception
+     */
+    public function step_watchful_backup(WP_REST_Request $request)
+    {
+        $body = json_decode($request->get_body(), true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception('Cannot decode request body');
+        }
+
+        return (new WatchfulBackupPlugin())->step_backup($body);
+    }
+
+    /**
+     *
+     * @param WP_REST_Request $request
+     * @return array
+     * @throws Exception
+     */
+    public function list_watchful_backup()
+    {
+        return $this->backupPluginHelper->get_backup_list('watchful');
+    }
+
+
+    /**
+     * @param WP_REST_Request $request
+     * @return array
+     * @throws Exception
+     */
+    public function data_watchful()
+    {
+        return [];
     }
 }

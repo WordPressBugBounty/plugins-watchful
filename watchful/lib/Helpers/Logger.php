@@ -9,7 +9,6 @@ final class Logger
 {
     const DEBUG = 100;
     const INFO = 200;
-    const NOTICE = 250;
     /**
      * Exceptional occurrences that are not errors
      *
@@ -19,14 +18,20 @@ final class Logger
     const WARNING = 300;
     const ERROR = 400;
 
+    /** @var string */
     private $log_dir;
+
+    /** @var string */
     private $log_file;
+
+    /** @var null | string */
+    private $channel;
     private $max_file_size = 5242880;
     private $max_backup_files = 5;
     /** @var WP_Filesystem_Base */
     private $filesystem;
 
-    public function __construct()
+    public function __construct(?string $channel = null)
     {
         $this->log_dir = WATCHFUL_PLUGIN_CONTENT_DIR;
         $this->log_file = $this->log_dir.DIRECTORY_SEPARATOR.'log.php';
@@ -35,6 +40,109 @@ final class Logger
         WP_Filesystem();
         global $wp_filesystem;
         $this->filesystem = $wp_filesystem;
+        $this->channel = $channel;
+    }
+
+    public function get_logs(?int $lines = 0, ?string $channel = null): array
+    {
+        if (!$this->filesystem->exists($this->log_file)) {
+            return [];
+        }
+
+        $content = $this->filesystem->get_contents_array($this->log_file);
+        if (!$content) {
+            return [];
+        }
+
+        $logs = array_slice($content, 2);
+
+        if ($lines > 0) {
+            $logs = array_slice($logs, -$lines);
+        }
+
+        $logs = array_values(
+            array_filter($logs)
+        );
+
+        if (!empty($channel)) {
+            $logs = array_values(array_filter($logs, function ($log) use ($channel) {
+                $log = json_decode($log, true);
+
+                return isset($log['channel']) && $log['channel'] === $channel;
+            }));
+        }
+
+        $map = array_map(function ($log) {
+            $log = json_decode($log, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return null;
+            }
+
+            if (!isset($log['message'], $log['context'], $log['level'], $log['ts'])) {
+                return null;
+            }
+
+            switch ($log['level']) {
+                case self::DEBUG:
+                    $log['level'] = 'DEBUG';
+                    break;
+                case self::INFO:
+                    $log['level'] = 'INFO';
+                    break;
+                case self::WARNING:
+                    $log['level'] = 'WARNING';
+                    break;
+                case self::ERROR:
+                    $log['level'] = 'ERROR';
+                    break;
+                default:
+                    $log['level'] = 'UNKNOWN';
+                    break;
+            }
+
+            $log['ts'] = gmdate('Y-m-d H:i:s', $log['ts'] ?: 0);
+
+            return $log;
+        }, $logs);
+
+        return array_values(
+            array_filter($map)
+        );
+    }
+
+    public function clear_logs(?string $channel = null): void
+    {
+        if (!$this->filesystem->exists($this->log_file)) {
+            return;
+        }
+
+        $content = $this->filesystem->get_contents_array($this->log_file);
+        if (!$content) {
+            return;
+        }
+
+        $this->filesystem->put_contents($this->log_file, "<?php\nif (!defined('ABSPATH')) { exit; }\n", FS_CHMOD_FILE);
+
+        if (empty($channel)) {
+            return;
+        }
+
+        $logs = array_slice($content, 2);
+        $logs = array_values(
+            array_filter($logs)
+        );
+
+        $logs = array_values(array_filter($logs, function ($log) use ($channel) {
+            $log = json_decode($log, true);
+
+            return isset($log['channel']) && $log['channel'] === $channel;
+        }));
+
+        foreach ($logs as $log) {
+            $log = json_decode($log, true);
+            $this->log($log['message'], $log['context'], $log['level']);
+        }
     }
 
     public function log($message, $context = [], $level = self::INFO)
@@ -57,6 +165,10 @@ final class Logger
                 'ts' => time(),
             ];
 
+            if (!empty($this->channel)) {
+                $log_entry['channel'] = $this->channel;
+            }
+
             $encoded_entry = wp_json_encode($log_entry)."\n";
 
             return @file_put_contents($this->log_file, $encoded_entry, FILE_APPEND | LOCK_EX);
@@ -71,7 +183,7 @@ final class Logger
         $this->filesystem->put_contents($this->log_file, $header, FS_CHMOD_FILE);
     }
 
-    public function check_log_size()
+    private function check_log_size()
     {
         if (
             !$this->filesystem->exists($this->log_file) ||
@@ -109,66 +221,23 @@ final class Logger
         }
     }
 
-    public function get_logs($lines = 0)
+    public function error($message, $context = [])
     {
-        if (!$this->filesystem->exists($this->log_file)) {
-            return [];
-        }
+        return $this->log($message, $context, self::ERROR);
+    }
 
-        $content = $this->filesystem->get_contents_array($this->log_file);
-        if (!$content) {
-            return [];
-        }
+    public function warning($message, $context = [])
+    {
+        return $this->log($message, $context, self::WARNING);
+    }
 
-        $logs = array_slice($content, 2);
+    public function info($message, $context = [])
+    {
+        return $this->log($message, $context);
+    }
 
-        if ($lines > 0) {
-            $logs = array_slice($logs, -$lines);
-        }
-
-        $logs = array_values(
-            array_filter($logs)
-        );
-
-        $map = array_map(function ($log) {
-            $log = json_decode($log, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return null;
-            }
-
-            if (!isset($log['message'], $log['context'], $log['level'], $log['ts'])) {
-                return null;
-            }
-
-            switch ($log['level']) {
-                case self::DEBUG:
-                    $log['level'] = 'DEBUG';
-                    break;
-                case self::INFO:
-                    $log['level'] = 'INFO';
-                    break;
-                case self::NOTICE:
-                    $log['level'] = 'NOTICE';
-                    break;
-                case self::WARNING:
-                    $log['level'] = 'WARNING';
-                    break;
-                case self::ERROR:
-                    $log['level'] = 'ERROR';
-                    break;
-                default:
-                    $log['level'] = 'UNKNOWN';
-                    break;
-            }
-
-            $log['ts'] = gmdate('Y-m-d H:i:s', $log['ts'] ?: 0);
-
-            return $log;
-        }, $logs);
-
-        return array_values(
-            array_filter($map)
-        );
+    public function debug($message, $context = [])
+    {
+        return $this->log($message, $context, self::DEBUG);
     }
 }

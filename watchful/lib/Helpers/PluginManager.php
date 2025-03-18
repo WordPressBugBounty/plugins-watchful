@@ -10,11 +10,14 @@ use Watchful\Skins\SkinPluginUpgrader;
 
 class PluginManager
 {
+    private const LOCK_NAME = 'install_update_plugin';
     private $logger;
+    private $lock_factory;
 
     public function __construct()
     {
-        $this->logger = new Logger();
+        $this->logger = new Logger('plugin_manager');
+        $this->lock_factory = new LockFactory($this->logger);
     }
 
 
@@ -30,7 +33,8 @@ class PluginManager
         $slug = null,
         $zip = null,
         $enable_maintenance_mode = false,
-        $handle_shutdown = false
+        $handle_shutdown = false,
+        $use_lock = false
     ) {
         include_once ABSPATH.'wp-admin/includes/admin.php';
         require_once ABSPATH.'wp-admin/includes/plugin.php';
@@ -46,18 +50,40 @@ class PluginManager
             'handle_shutdown' => $handle_shutdown,
         ]);
 
+        $lock = false;
+
+        if ($use_lock) {
+            $lock = $this->lock_factory->acquire(self::LOCK_NAME);
+        }
+
+        if ($use_lock && !$lock) {
+            $this->logger->log('Plugin installation already in progress', [], Logger::WARNING);
+            throw new Exception('Plugin installation already in progress', 409);
+        }
+
         if (!$slug && !$zip) {
             $this->logger->log('parameter is missing. slug or zip required', [
                 'slug' => $slug,
                 'zip' => $zip,
             ],                 Logger::WARNING);
+
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
+
             throw new Exception('parameter is missing. slug or zip required', 400);
         }
 
         if (defined('DISALLOW_FILE_MODS') && DISALLOW_FILE_MODS) {
             $this->logger->log('file modification is disabled (DISALLOW_FILE_MODS)', [], Logger::WARNING);
+
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
+
             throw new Exception('file modification is disabled (DISALLOW_FILE_MODS)', 403);
         }
+
 
         if ($zip) {
             $install_path = $zip;
@@ -76,7 +102,11 @@ class PluginManager
                 'slug' => $slug,
             ]);
 
-            $this->update_plugin($slug, $zip, $enable_maintenance_mode, $handle_shutdown);
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
+
+            $this->update_plugin($slug, $zip, $enable_maintenance_mode, $handle_shutdown, $use_lock);
 
             return;
         }
@@ -136,6 +166,10 @@ class PluginManager
             }
 
             throw new Exception($e->getMessage(), 500);
+        } finally {
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
         }
 
         if (is_wp_error($result)) {
@@ -278,7 +312,8 @@ class PluginManager
         $plugin_path = null,
         $zip = null,
         $enable_maintenance_mode = false,
-        $handle_shutdown = false
+        $handle_shutdown = false,
+        $use_lock = false
     ) {
         $this->logger->log('Received request to update plugin', [
             'plugin_path' => $plugin_path,
@@ -295,13 +330,35 @@ class PluginManager
             require_once ABSPATH.'wp-admin/includes/file.php';
         }
 
+        $lock = false;
+
+        if ($use_lock) {
+            $lock = $this->lock_factory->acquire(self::LOCK_NAME);
+        }
+
+        if ($use_lock && !$lock) {
+            $this->logger->log('Plugin update already in progress', [], Logger::WARNING);
+            $this->lock_factory->release(self::LOCK_NAME);
+            throw new Exception('Plugin update already in progress', 409);
+        }
+
         if (empty($plugin_path) && empty($zip)) {
             $this->logger->log('parameter is missing. plugin_path or zip required', [], Logger::WARNING);
+
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
+
             throw new Exception('parameter is missing. plugin_path or zip required', 400);
         }
 
         if (defined('DISALLOW_FILE_MODS') && DISALLOW_FILE_MODS) {
             $this->logger->log('file modification is disabled (DISALLOW_FILE_MODS)', [], Logger::WARNING);
+
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
+
             throw new Exception('file modification is disabled (DISALLOW_FILE_MODS)', 403);
         }
 
@@ -332,6 +389,11 @@ class PluginManager
                 'required_version' => $min_php_version,
                 'current_version' => phpversion(),
             ],                 Logger::ERROR);
+
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
+
             throw new Exception("The minimum required PHP version for this update is ".$min_php_version, 500);
         }
 
@@ -374,6 +436,10 @@ class PluginManager
                 $plugin_backup_manager,
                 $e->getMessage()
             );
+        } finally {
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
         }
 
         if (is_wp_error($result)) {
@@ -395,7 +461,7 @@ class PluginManager
             $this->logger->log('Got WP error during update', [
                 'plugin_path' => $plugin_path,
                 'error' => $skin->error->get_error_messages(),
-                'data' => $result->get_all_error_data(),
+                'data' => $skin->error->get_all_error_data(),
             ],                 Logger::ERROR);
             $this->handle_update_error(
                 $handle_shutdown,
@@ -481,7 +547,7 @@ class PluginManager
             add_action('shutdown', [$plugin_backup_manager, 'restore_backup'], 0, false);
         }
 
-        throw new Exception($error_message, $error_code, [
+        throw new Exception($error_message, (int)$error_code, [
             'plugin' => $slug,
             'is_installed' => $this->is_installed($slug),
             'handle_shutdown' => $handle_shutdown,

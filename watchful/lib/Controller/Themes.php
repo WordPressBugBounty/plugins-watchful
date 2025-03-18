@@ -98,41 +98,6 @@ class Themes implements BaseControllerInterface
         );
     }
 
-    private function parse_install_update_request_params(WP_REST_Request $request)
-    {
-        $params = array(
-            'slug' => $request->get_param('slug'),
-            'zip' => $request->get_param('zip'),
-            'enable_maintenance_mode' => false,
-            'handle_shutdown' => false,
-            'new_version' => null
-        );
-
-        $body = $request->get_body();
-
-        if (!empty($body)) {
-            $post_data = json_decode($body);
-
-            if (!empty($post_data) && !empty($post_data->package)) {
-                $params['zip'] = $post_data->package;
-            }
-
-            if (!empty($post_data) && !empty($post_data->maintenance_mode)) {
-                $params['enable_maintenance_mode'] = (bool)$post_data->maintenance_mode;
-            }
-
-            if (!empty($post_data) && !empty($post_data->handle_shutdown)) {
-                $params['handle_shutdown'] = (bool)$post_data->handle_shutdown;
-            }
-
-            if (!empty($post_data) && !empty($post_data->new_version)) {
-                $params['new_version'] = $post_data->new_version;
-            }
-        }
-
-        return $params;
-    }
-
     /**
      * Update a theme from his slug.
      *
@@ -157,9 +122,49 @@ class Themes implements BaseControllerInterface
                 $params['zip'],
                 $params['enable_maintenance_mode'],
                 $params['handle_shutdown'],
+                $params['use_lock'],
                 $params['new_version']
             )
         );
+    }
+
+    private function parse_install_update_request_params(WP_REST_Request $request)
+    {
+        $params = array(
+            'slug' => $request->get_param('slug'),
+            'zip' => $request->get_param('zip'),
+            'enable_maintenance_mode' => false,
+            'handle_shutdown' => false,
+            'new_version' => null,
+        );
+
+        $body = $request->get_body();
+
+        if (!empty($body)) {
+            $post_data = json_decode($body);
+
+            if (!empty($post_data) && !empty($post_data->package)) {
+                $params['zip'] = $post_data->package;
+            }
+
+            if (!empty($post_data) && !empty($post_data->maintenance_mode)) {
+                $params['enable_maintenance_mode'] = (bool)$post_data->maintenance_mode;
+            }
+
+            if (!empty($post_data) && !empty($post_data->handle_shutdown)) {
+                $params['handle_shutdown'] = (bool)$post_data->handle_shutdown;
+            }
+
+            if (!empty($post_data) && !empty($post_data->use_lock)) {
+                $params['use_lock'] = (bool)$post_data->use_lock;
+            }
+
+            if (!empty($post_data) && !empty($post_data->new_version)) {
+                $params['new_version'] = $post_data->new_version;
+            }
+        }
+
+        return $params;
     }
 
     /**

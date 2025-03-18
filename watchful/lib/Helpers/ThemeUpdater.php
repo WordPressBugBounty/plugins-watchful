@@ -9,11 +9,14 @@ use Watchful\Skins\SkinThemeUpgrader;
 
 class ThemeUpdater
 {
+    private const LOCK_NAME = 'install_update_theme';
     private $logger;
+    private $lock_factory;
 
     public function __construct()
     {
-        $this->logger = new Logger();
+        $this->logger = new Logger('theme_updater');
+        $this->lock_factory = new LockFactory($this->logger);
     }
 
     /**
@@ -30,6 +33,7 @@ class ThemeUpdater
         $zip = null,
         $enable_maintenance_mode = false,
         $handle_shutdown = false,
+        $use_lock = false,
         $new_version = null
     ) {
         require_once ABSPATH.'wp-admin/includes/theme.php';
@@ -48,16 +52,39 @@ class ThemeUpdater
             'new_version' => $new_version,
         ]);
 
+        $lock = false;
+
+        if ($use_lock) {
+            $lock = $this->lock_factory->acquire(self::LOCK_NAME);
+        }
+
+        if ($use_lock && !$lock) {
+            $this->logger->log('Could not acquire lock', [
+                'lock_name' => self::LOCK_NAME,
+            ],                 Logger::WARNING);
+            throw new Exception('Theme update is already in progress', 409);
+        }
+
         if (empty($slug) && empty($zip)) {
             $this->logger->log('parameter is missing. slug required or zip', [
                 'theme_slug' => $slug,
                 'zip' => $zip,
             ],                 Logger::WARNING);
+
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
+
             throw new Exception('parameter is missing. slug required or zip', 400);
         }
 
         if (defined('DISALLOW_FILE_MODS') && DISALLOW_FILE_MODS) {
             $this->logger->log('file modification is disabled (DISALLOW_FILE_MODS)', [], Logger::WARNING);
+
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
+
             throw new Exception('file modification is disabled (DISALLOW_FILE_MODS)', 403);
         }
 
@@ -90,6 +117,11 @@ class ThemeUpdater
                 'php_version' => phpversion(),
                 'min_php_version' => $min_php_version,
             ],                 Logger::WARNING);
+
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
+
             throw new Exception("The minimum required PHP version for this update is ".$min_php_version, 500);
         }
 
@@ -127,6 +159,10 @@ class ThemeUpdater
                 $theme_backup_manager,
                 $e->getMessage()
             );
+        } finally {
+            if ($use_lock) {
+                $this->lock_factory->release(self::LOCK_NAME);
+            }
         }
 
         if (is_wp_error($result)) {

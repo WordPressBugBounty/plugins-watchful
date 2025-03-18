@@ -3,6 +3,7 @@
 namespace Watchful\Controller;
 
 use Watchful\Helpers\Logger;
+use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 
@@ -33,6 +34,11 @@ class Logs implements BaseControllerInterface
                     'callback' => array($this, 'get_logs'),
                     'permission_callback' => array('Watchful\Routes', 'authentification'),
                 ),
+                array(
+                    'methods' => WP_REST_Server::DELETABLE,
+                    'callback' => array($this, 'clear_logs'),
+                    'permission_callback' => array('Watchful\Routes', 'authentification'),
+                ),
             )
         );
     }
@@ -40,8 +46,21 @@ class Logs implements BaseControllerInterface
     /**
      * @return WP_REST_Response
      */
-    public function get_logs()
+    public function get_logs(WP_REST_Request $request)
     {
-        return new WP_REST_Response($this->logger->get_logs(), 200);
+        $channel = $request->get_param('channel');
+        $lines = $request->get_param('lines') ?? 0;
+
+        return new WP_REST_Response($this->logger->get_logs($lines, $channel), 200);
+    }
+
+    /**
+     * @return WP_REST_Response
+     */
+    public function clear_logs(WP_REST_Request $request)
+    {
+        $channel = $request->get_param('channel');
+
+        return new WP_REST_Response($this->logger->clear_logs($channel), 200);
     }
 }

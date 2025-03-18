@@ -4,6 +4,7 @@ namespace Watchful\Helpers;
 
 use Watchful\Helpers\BackupPlugins\Ai1wmBackupPlugin;
 use Watchful\Helpers\BackupPlugins\AkeebaBackupPlugin;
+use Watchful\Helpers\BackupPlugins\WatchfulBackupPlugin;
 use Watchful\Helpers\BackupPlugins\XClonerBackupPlugin;
 
 class BackupPluginHelper
@@ -15,11 +16,15 @@ class BackupPluginHelper
     /** @var XClonerBackupPlugin|null */
     private $xclonerBackupPluginHelper;
 
+    /** @var WatchfulBackupPlugin|null */
+    private $watchfulBackupPluginHelper;
+
     public function __construct()
     {
         $this->akeebaBackupPluginHelper = self::has_active_backup_plugin('akeeba') ? new AkeebaBackupPlugin() : null;
         $this->ai1wmBackupPluginHelper = self::has_active_backup_plugin('ai1wm') ? new Ai1wmBackupPlugin() : null;
         $this->xclonerBackupPluginHelper = self::has_active_backup_plugin('xcloner') ? new XClonerBackupPlugin() : null;
+        $this->watchfulBackupPluginHelper = new WatchfulBackupPlugin();
     }
 
     public static function has_active_backup_plugin($plugin_name)
@@ -81,6 +86,10 @@ class BackupPluginHelper
             return $profile->plugin === 'xcloner';
         });
 
+        $watchful_profiles = array_filter($site_backups_data, function ($profile) {
+            return $profile->plugin === 'watchful';
+        });
+
         if ($this->akeebaBackupPluginHelper !== null && !empty($akeeba_profiles)) {
             foreach ($akeeba_profiles as $akeeba_profile) {
                 $last_backup_dates[] = $this->akeebaBackupPluginHelper->get_last_backup_date(
@@ -95,6 +104,10 @@ class BackupPluginHelper
 
         if ($this->xclonerBackupPluginHelper !== null && !empty($xcloner_profiles)) {
             $last_backup_dates[] = $this->xclonerBackupPluginHelper->get_last_backup_date();
+        }
+
+        if (!empty($watchful_profiles)) {
+            $last_backup_dates[] = $this->watchfulBackupPluginHelper->get_last_backup_date();
         }
 
         if (empty($last_backup_dates)) {

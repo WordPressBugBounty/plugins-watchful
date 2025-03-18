@@ -165,7 +165,8 @@ class Plugins implements BaseControllerInterface
             $params['slug'],
             $params['zip'],
             $params['enable_maintenance_mode'],
-            $params['handle_shutdown']
+            $params['handle_shutdown'],
+            $params['use_lock']
         );
 
         return new WP_REST_Response(true);
@@ -178,6 +179,7 @@ class Plugins implements BaseControllerInterface
             'zip' => $request->get_param('zip'),
             'enable_maintenance_mode' => false,
             'handle_shutdown' => false,
+            'use_lock' => false,
         );
 
         $body = $request->get_body();
@@ -195,6 +197,10 @@ class Plugins implements BaseControllerInterface
 
             if (!empty($post_data) && !empty($post_data->handle_shutdown)) {
                 $params['handle_shutdown'] = (bool)$post_data->handle_shutdown;
+            }
+
+            if (!empty($post_data) && !empty($post_data->use_lock)) {
+                $params['use_lock'] = (bool)$post_data->use_lock;
             }
         }
 
@@ -218,7 +224,8 @@ class Plugins implements BaseControllerInterface
                 $params['slug'],
                 $params['zip'],
                 $params['enable_maintenance_mode'],
-                $params['handle_shutdown']
+                $params['handle_shutdown'],
+                $params['use_lock']
             )
         );
     }
