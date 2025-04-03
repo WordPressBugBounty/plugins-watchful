@@ -10,7 +10,7 @@ use Watchful\Skins\SkinPluginUpgrader;
 
 class PluginManager
 {
-    private const LOCK_NAME = 'install_update_plugin';
+    public const LOCK_NAME = 'install_update';
     private $logger;
     private $lock_factory;
 

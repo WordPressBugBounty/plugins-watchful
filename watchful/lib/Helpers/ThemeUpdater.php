@@ -9,7 +9,6 @@ use Watchful\Skins\SkinThemeUpgrader;
 
 class ThemeUpdater
 {
-    private const LOCK_NAME = 'install_update_theme';
     private $logger;
     private $lock_factory;
 
@@ -55,12 +54,12 @@ class ThemeUpdater
         $lock = false;
 
         if ($use_lock) {
-            $lock = $this->lock_factory->acquire(self::LOCK_NAME);
+            $lock = $this->lock_factory->acquire(PluginManager::LOCK_NAME);
         }
 
         if ($use_lock && !$lock) {
             $this->logger->log('Could not acquire lock', [
-                'lock_name' => self::LOCK_NAME,
+                'lock_name' => PluginManager::LOCK_NAME,
             ],                 Logger::WARNING);
             throw new Exception('Theme update is already in progress', 409);
         }
@@ -72,7 +71,7 @@ class ThemeUpdater
             ],                 Logger::WARNING);
 
             if ($use_lock) {
-                $this->lock_factory->release(self::LOCK_NAME);
+                $this->lock_factory->release(PluginManager::LOCK_NAME);
             }
 
             throw new Exception('parameter is missing. slug required or zip', 400);
@@ -82,7 +81,7 @@ class ThemeUpdater
             $this->logger->log('file modification is disabled (DISALLOW_FILE_MODS)', [], Logger::WARNING);
 
             if ($use_lock) {
-                $this->lock_factory->release(self::LOCK_NAME);
+                $this->lock_factory->release(PluginManager::LOCK_NAME);
             }
 
             throw new Exception('file modification is disabled (DISALLOW_FILE_MODS)', 403);
@@ -119,7 +118,7 @@ class ThemeUpdater
             ],                 Logger::WARNING);
 
             if ($use_lock) {
-                $this->lock_factory->release(self::LOCK_NAME);
+                $this->lock_factory->release(PluginManager::LOCK_NAME);
             }
 
             throw new Exception("The minimum required PHP version for this update is ".$min_php_version, 500);
@@ -161,7 +160,7 @@ class ThemeUpdater
             );
         } finally {
             if ($use_lock) {
-                $this->lock_factory->release(self::LOCK_NAME);
+                $this->lock_factory->release(PluginManager::LOCK_NAME);
             }
         }
 
@@ -335,7 +334,7 @@ class ThemeUpdater
             'handle_shutdown' => $handle_shutdown,
         ]);
 
-        throw new Exception($error_message, $error_code, [
+        throw new Exception($error_message, (int)$error_code, [
             'theme' => $slug,
             'is_installed' => $this->is_installed($slug),
             'handle_shutdown' => $handle_shutdown,

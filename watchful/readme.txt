@@ -82,6 +82,9 @@ The Forever Free account at Watchful will allow you to manage and perform mainte
 Watchful launched in 2012 and began supporting WordPress in 2017.
 
 == Changelog ==
+= v2.0.4 =
+* Use the same lock when updating plugins and themes
+
 = v2.0.3 =
 * Add logs to backup processor class
 * ignore backup folders from other vendors
