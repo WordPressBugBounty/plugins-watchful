@@ -12,8 +12,10 @@
 
 namespace Watchful\Helpers;
 
+use RuntimeException;
 use Watchful\Audit\Files\Tools;
 use Watchful\Exception;
+use WP_Filesystem_Direct;
 
 /**
  * Watchful Files helper class.
@@ -110,5 +112,30 @@ class Files
         $code = wp_remote_retrieve_response_code($response);
 
         return 200 === $code;
+    }
+
+    public function add_security_files(string $path): void
+    {
+        /** @var $wp_filesystem WP_Filesystem_Direct */
+        global $wp_filesystem;
+        if (empty($wp_filesystem)) {
+            require_once(ABSPATH.'wp-admin/includes/file.php');
+            WP_Filesystem();
+        }
+
+        $result = true;
+        $htaccess_path = $path.'/.htaccess';
+        if (!file_exists($htaccess_path)) {
+            $result = $wp_filesystem->put_contents($htaccess_path, "Deny from all\n");
+        }
+
+        $index_path = $path.'/index.php';
+        if (!file_exists($index_path)) {
+            $result = $wp_filesystem->put_contents($index_path, "<?php // Silence is golden. ?>\n");
+        }
+
+        if ($result === false) {
+            throw new RuntimeException('Failed to create security files');
+        }
     }
 }

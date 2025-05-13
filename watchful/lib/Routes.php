@@ -18,6 +18,7 @@ use Watchful\Controller\Core;
 use Watchful\Controller\Files;
 use Watchful\Controller\Logs;
 use Watchful\Controller\Plugins;
+use Watchful\Controller\Restore;
 use Watchful\Controller\Tests;
 use Watchful\Controller\Themes;
 use Watchful\Controller\Validation;
@@ -93,5 +94,8 @@ class Routes
 
         $logs = new Logs();
         $logs->register_routes();
+
+        $restore = new Restore();
+        $restore->register_routes();
     }
 }

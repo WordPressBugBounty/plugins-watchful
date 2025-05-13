@@ -13,6 +13,7 @@ use WP_Filesystem_Direct;
 
 final class Processor
 {
+    public const DB_PREFIX_PLACEHOLDER = 'DB_PREFIX_';
     private const BACKUP_PATHS_TO_IGNORE = ['wp-content/ai1wm-backups', 'wp-content/backups'];
 
     /** @var StateManager */
@@ -262,10 +263,25 @@ final class Processor
         $write_result = true;
         if ($current_offset === 0) {
             $create_table = $wpdb->get_row("SHOW CREATE TABLE $table_name", ARRAY_N);
+
+            $create_sql = $create_table[1];
+            $table_name_without_prefix = str_replace($wpdb->prefix, self::DB_PREFIX_PLACEHOLDER, $table_name);
+            $create_sql = str_replace($table_name, $table_name_without_prefix, $create_sql);
+
+            if (strpos($create_sql, 'REFERENCES `'.$wpdb->prefix) !== false) {
+                $create_sql = str_replace(
+                    'REFERENCES `'.$wpdb->prefix,
+                    'REFERENCES `'.self::DB_PREFIX_PLACEHOLDER,
+                    $create_sql
+                );
+            }
+
+            $drop_table = "DROP TABLE IF EXISTS `$table_name_without_prefix`;\n";
             $write_result = file_put_contents(
                 $backup_file,
-                "-- Table: $table_name\n".
-                $create_table[1].";\n\n",
+                "-- Table: $table_name_without_prefix\n".
+                $drop_table.
+                $create_sql.";\n\n",
                 $file_mode
             );
         }
@@ -300,15 +316,17 @@ final class Processor
             return;
         }
 
-        $sql_content = '';
+        $sql_content = "START TRANSACTION;\n";
         foreach ($rows as $row) {
             $insert_values = array_map(function ($value) use ($wpdb) {
                 return is_null($value) ? 'NULL' : $wpdb->_real_escape($value);
             }, $row);
 
-            $sql_content .= "INSERT INTO $table_name VALUES ('".
+            $table_name_without_prefix = str_replace($wpdb->prefix, self::DB_PREFIX_PLACEHOLDER, $table_name);
+            $sql_content .= "INSERT INTO $table_name_without_prefix VALUES ('".
                 implode("', '", $insert_values)."');\n";
         }
+        $sql_content .= "COMMIT;\n\n";
 
         $write_result = file_put_contents($backup_file, $sql_content, FILE_APPEND);
 

@@ -56,12 +56,12 @@ class Connection
      *                      - array post_data (default empty array) an array of key/values to
      *                      pass as post data.
      *
-     * @return false on error | a response object with the following properties
+     * @return StdClass|false  false on error | a response object with the following properties
      *      - data : raw response
      *      - info : curl info
      *      - error : curl error
      */
-    public function get_curl($config)
+    public function get_curl(array $config)
     {
         if (!isset($config['url'])) {
             return false;

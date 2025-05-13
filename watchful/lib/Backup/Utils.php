@@ -3,6 +3,7 @@
 namespace Watchful\Backup;
 
 use RuntimeException;
+use Watchful\Helpers\Files;
 use WP_Filesystem_Direct;
 use ZipArchive;
 
@@ -10,6 +11,15 @@ final class Utils
 {
     public const BACKUP_DATABASE_FILE_NAME = 'database.sql';
     public const BACKUP_FILES_LIST_FILE_NAME = 'files_list.txt';
+
+    /** @var Files $file_helper */
+    private $file_helper;
+
+    public function __construct()
+    {
+        $this->file_helper = new Files();
+    }
+
 
     public function get_zip_archive(string $backup_id): ZipArchive
     {
@@ -70,7 +80,7 @@ final class Utils
             return '';
         }
 
-        $this->add_security_files($backup_dir);
+        $this->file_helper->add_security_files($backup_dir);
 
         return $backup_dir;
     }
@@ -101,34 +111,9 @@ final class Utils
             wp_mkdir_p($backup_dir);
         }
 
-        $this->add_security_files($backup_dir);
+        $this->file_helper->add_security_files($backup_dir);
 
         return $backup_dir;
-    }
-
-    private function add_security_files(string $path): void
-    {
-        /** @var $wp_filesystem WP_Filesystem_Direct */
-        global $wp_filesystem;
-        if (empty($wp_filesystem)) {
-            require_once(ABSPATH.'wp-admin/includes/file.php');
-            WP_Filesystem();
-        }
-
-        $result = true;
-        $htaccess_path = $path.'/.htaccess';
-        if (!file_exists($htaccess_path)) {
-            $result = $wp_filesystem->put_contents($htaccess_path, "Deny from all\n");
-        }
-
-        $index_path = $path.'/index.php';
-        if (!file_exists($index_path)) {
-            $result = $wp_filesystem->put_contents($index_path, "<?php // Silence is golden. ?>\n");
-        }
-
-        if ($result === false) {
-            throw new RuntimeException('Failed to create security files');
-        }
     }
 
     public function get_database_backup_file_path(string $backup_id): string

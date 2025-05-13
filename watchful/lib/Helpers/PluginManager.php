@@ -384,7 +384,7 @@ class PluginManager
             $this->set_transient_update_for_zip($zip, $plugin_path);
         }
 
-        if (version_compare(phpversion(), $min_php_version) < 0) {
+        if ($min_php_version && version_compare(phpversion(), $min_php_version) < 0) {
             $this->logger->log('PHP version is too low for this update', [
                 'required_version' => $min_php_version,
                 'current_version' => phpversion(),
