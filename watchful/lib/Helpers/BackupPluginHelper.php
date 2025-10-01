@@ -2,6 +2,7 @@
 
 namespace Watchful\Helpers;
 
+use Exception;
 use Watchful\Helpers\BackupPlugins\Ai1wmBackupPlugin;
 use Watchful\Helpers\BackupPlugins\AkeebaBackupPlugin;
 use Watchful\Helpers\BackupPlugins\WatchfulBackupPlugin;
@@ -23,7 +24,12 @@ class BackupPluginHelper
     {
         $this->akeebaBackupPluginHelper = self::has_active_backup_plugin('akeeba') ? new AkeebaBackupPlugin() : null;
         $this->ai1wmBackupPluginHelper = self::has_active_backup_plugin('ai1wm') ? new Ai1wmBackupPlugin() : null;
-        $this->xclonerBackupPluginHelper = self::has_active_backup_plugin('xcloner') ? new XClonerBackupPlugin() : null;
+        try {
+            $this->xclonerBackupPluginHelper = self::has_active_backup_plugin('xcloner') ? new XClonerBackupPlugin(
+            ) : null;
+        } catch (Exception $e) {
+            $this->xclonerBackupPluginHelper = null;
+        }
         $this->watchfulBackupPluginHelper = new WatchfulBackupPlugin();
     }
 

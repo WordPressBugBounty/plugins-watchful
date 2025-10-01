@@ -9,8 +9,14 @@ use ZipArchive;
 
 final class Utils
 {
-    public const BACKUP_DATABASE_FILE_NAME = 'database.sql';
-    public const BACKUP_FILES_LIST_FILE_NAME = 'files_list.txt';
+    public const BACKUP_FILES_LIST_FILE_NAME = 'files_list.csv';
+    public const BACKUP_FILES_LIST_DELETED_FILE_NAME = 'files_list_deleted.csv';
+    public const BACKUP_ARCHIVE_FILE_NAME = 'backup.zip';
+    public const BACKUP_ARCHIVE_WATCHFUL_CONTENT = 'watchful-backup-content';
+    public const BACKUP_ARCHIVE_DATABASE_DIR_NAME = 'database';
+
+    public const BACKUP_TYPE_FULL = 'full';
+    public const BACKUP_TYPE_DIFFERENTIAL = 'differential';
 
     /** @var Files $file_helper */
     private $file_helper;
@@ -23,7 +29,7 @@ final class Utils
 
     public function get_zip_archive(string $backup_id): ZipArchive
     {
-        $path = $this->get_backup_file($backup_id, 'backup.zip', false);
+        $path = $this->get_backup_file($backup_id, self::BACKUP_ARCHIVE_FILE_NAME, false);
 
         if (!class_exists('ZipArchive')) {
             throw new RuntimeException('ZipArchive class not found');
@@ -116,14 +122,47 @@ final class Utils
         return $backup_dir;
     }
 
-    public function get_database_backup_file_path(string $backup_id): string
+    public function get_database_backup_file_path(string $backup_id, string $table_name): string
     {
-        return $this->get_backup_file($backup_id, self::BACKUP_DATABASE_FILE_NAME);
+        return $this->get_database_backup_dir_path($backup_id).DIRECTORY_SEPARATOR.$table_name.'.sql';
+    }
+
+    public function get_database_backup_dir_path(string $backup_id): string
+    {
+        $path = $this->get_backup_directory($backup_id).DIRECTORY_SEPARATOR.'database';
+
+        if (file_exists($path)) {
+            return $path;
+        }
+
+        if (!wp_mkdir_p($path)) {
+            throw new RuntimeException('Failed to create database backup directory');
+        }
+
+        $this->file_helper->add_security_files($path);
+
+        return $path;
     }
 
     public function get_files_list_file_path(string $backup_id): string
     {
-        return $this->get_backup_file($backup_id, self::BACKUP_FILES_LIST_FILE_NAME);
+        return $this->get_backup_file(
+            $backup_id,
+            self::BACKUP_FILES_LIST_FILE_NAME
+        );
+    }
+
+    public function get_files_list_deleted_file_path(string $backup_id): string
+    {
+        return $this->get_backup_file(
+            $backup_id,
+            self::BACKUP_FILES_LIST_DELETED_FILE_NAME
+        );
+    }
+
+    public function get_backup_file_path(string $backup_id): string
+    {
+        return $this->get_backup_file($backup_id, self::BACKUP_ARCHIVE_FILE_NAME);
     }
 
     public function calculate_chunk_size(string $operation = 'default'): array
@@ -218,6 +257,7 @@ final class Utils
             'zip',
             'json',
             'mysqli',
+            'openssl',
         ];
 
         $disabled_functions = explode(',', ini_get('disable_functions'));
@@ -239,5 +279,72 @@ final class Utils
         }
 
         return true;
+    }
+
+    public function get_file_checksum(string $file_path): string
+    {
+        if (!file_exists($file_path) || !is_readable($file_path)) {
+            return '';
+        }
+
+        return md5_file($file_path);
+    }
+
+    public function parse_csv(string $csv_file_path): array
+    {
+        if (!file_exists($csv_file_path)) {
+            throw new RuntimeException('CSV file not found: '.$csv_file_path);
+        }
+
+        $handle = fopen($csv_file_path, 'r');
+
+        if ($handle === false) {
+            throw new RuntimeException('Failed to open CSV file: '.$csv_file_path);
+        }
+
+        fgetcsv($handle);
+
+        $data = [];
+        while (($line = fgetcsv($handle)) !== false) {
+            if ($line === null) {
+                continue;
+            }
+
+            $data[] = array_map(function ($field) {
+                return str_replace('"', '', $field);
+            }, $line);
+        }
+
+        // remove first header line
+        if (count($data) > 0) {
+            array_shift($data);
+        }
+
+        fclose($handle);
+
+        return $data;
+    }
+
+    public function write_csv_header(string $csv_file_path, array $header): bool
+    {
+        $headerString = implode(',', array_map([$this, 'escape_csv_field'], $header))."\n";
+
+        return file_put_contents($csv_file_path, $headerString) !== false;
+    }
+
+    public function append_row_to_csv(string $csv_file_path, array $data): bool
+    {
+        $csv_line = implode(',', array_map([$this, 'escape_csv_field'], $data))."\n";
+
+        return file_put_contents($csv_file_path, $csv_line, FILE_APPEND) !== false;
+    }
+
+    private function escape_csv_field(string $field): string
+    {
+        if (strpos($field, ',') !== false || strpos($field, '"') !== false || strpos($field, "\n") !== false) {
+            return '"'.str_replace('"', '""', $field).'"';
+        }
+
+        return $field;
     }
 }

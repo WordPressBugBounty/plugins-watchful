@@ -4,6 +4,8 @@ namespace Watchful\Backup;
 
 use Exception;
 use Watchful\Helpers\Logger;
+use Watchful\Model\UploadPart;
+use Watchful\Model\UploadStep;
 
 final class ChunkedUploader
 {
@@ -21,7 +23,7 @@ final class ChunkedUploader
     /**
      * @throws Exception
      */
-    public function upload_file(string $filePath, ?string $url, ?array $resumeData = null): array
+    public function upload_file(string $filePath, ?string $url, UploadStep $uploadStep)
     {
         if (!file_exists($filePath)) {
             $this->logger->warning('File not found', ['file' => $filePath]);
@@ -30,28 +32,19 @@ final class ChunkedUploader
 
         $handle = fopen($filePath, 'rb');
 
-        $state = $resumeData ?? [
-            'completed' => true,
-            'current_offset' => 0,
-            'part_number' => 0,
-            'total_size' => filesize($filePath),
-            'total_parts' => ceil(filesize($filePath) / $this->chunkSize),
-            'parts' => [],
-        ];
-
-        if (empty($resumeData['total_size'])) {
-            $state['total_size'] = filesize($filePath);
+        if ($uploadStep->total_size === 0) {
+            $uploadStep->total_size = filesize($filePath);
         }
 
-        if (empty($resumeData['total_parts'])) {
-            $state['total_parts'] = ceil(filesize($filePath) / $this->chunkSize);
+        if ($uploadStep->total_parts === 0) {
+            $uploadStep->total_parts = ceil($uploadStep->total_size / $this->chunkSize);
         }
 
         if (empty($url)) {
-            return $state;
+            return;
         }
 
-        fseek($handle, $state['current_offset']);
+        fseek($handle, $uploadStep->current_offset);
 
         $chunk = fread($handle, $this->chunkSize);
         if ($chunk !== false) {
@@ -60,22 +53,22 @@ final class ChunkedUploader
                 $chunk
             );
 
-            $state['part_number']++;
-            $state['parts'][] = [
-                'PartNumber' => $state['part_number'],
-                'ETag' => $this->extract_e_tag($response),
-            ];
+            $uploadStep->part_number++;
 
-            $state['current_offset'] = ftell($handle);
+            $uploadPart = new UploadPart();
+            $uploadPart->part_number = $uploadStep->part_number;
+            $uploadPart->e_tag = $this->extract_e_tag($response);
+
+            $uploadStep->parts[] = $uploadPart;
+
+            $uploadStep->current_offset = ftell($handle);
         }
 
         if (feof($handle)) {
-            $state['completed'] = true;
+            $uploadStep->completed = true;
         }
 
         fclose($handle);
-
-        return $state;
     }
 
     /**

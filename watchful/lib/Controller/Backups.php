@@ -21,6 +21,8 @@ use Watchful\Helpers\Authentification;
 use Watchful\Helpers\BackupPluginHelper;
 use Watchful\Helpers\BackupPlugins\WatchfulBackupPlugin;
 use Watchful\Helpers\BackupPlugins\XClonerBackupPlugin;
+use Watchful\Model\BackupState;
+use WP_Error;
 use WP_REST_Request;
 use WP_REST_Server;
 
@@ -414,10 +416,12 @@ class Backups implements BaseControllerInterface
     /**
      * @throws Exception
      */
-    public function execute_watchful_backup()
+    public function execute_watchful_backup(WP_REST_Request $request)
     {
+        $body = json_decode($request->get_body(), true);
+
         return rest_ensure_response(
-            (new WatchfulBackupPlugin())->start_backup()
+            (new WatchfulBackupPlugin())->start_backup_with_options($body)
         );
     }
 
@@ -425,7 +429,7 @@ class Backups implements BaseControllerInterface
      * Continues previously started backup process
      *
      * @param WP_REST_Request $request
-     * @return array
+     * @return BackupState|WP_Error
      * @throws Exception
      */
     public function step_watchful_backup(WP_REST_Request $request)

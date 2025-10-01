@@ -3,7 +3,7 @@
 namespace Watchful\Controller;
 
 use Watchful\Helpers\Authentification;
-use Watchful\Restore\Manager;
+use Watchful\Restore\Processor;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
@@ -14,7 +14,7 @@ class Restore implements BaseControllerInterface
 
     public function __construct()
     {
-        $this->restore_manager = new Manager();
+        $this->restore_manager = new Processor();
     }
 
     public function step_restore(WP_REST_Request $request): WP_REST_Response

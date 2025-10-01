@@ -17,6 +17,7 @@ class StepResponse implements JsonSerializable
     public const STATUS_CODE_RESTORE_DATA_ERRORS = 'restore_data_errors';
     public const STATUS_CODE_RESTORE_DATABASE_ERRORS = 'restore_database_errors';
     public const STATUS_CODE_RESTORE_DATABASE_COMPLETED = 'restore_database_completed';
+    public const STATUS_CODE_RESTORE_DATABASE_PROCESSING = 'restore_database_processing';
     public const STATUS_CODE_CLEANUP_COMPLETE = 'cleanup_complete';
     private $step_completed;
     private $data;
@@ -49,6 +50,7 @@ class StepResponse implements JsonSerializable
             case self::STATUS_CODE_DOWNLOAD_COMPLETE:
             case self::STATUS_CODE_RESTORE_DATA_COMPLETED:
             case self::STATUS_CODE_RESTORE_DATABASE_COMPLETED:
+            case self::STATUS_CODE_RESTORE_DATABASE_PROCESSING:
             case self::STATUS_CODE_CLEANUP_COMPLETE:
             case self::STATUS_CODE_RESTORE_DATA_ERRORS:
             case self::STATUS_CODE_RESTORE_DATABASE_ERRORS:
@@ -67,9 +69,11 @@ class StepResponse implements JsonSerializable
             case self::STATUS_CODE_RESTORE_DATA_COMPLETED:
             case self::STATUS_CODE_RESTORE_DATA_ERRORS:
                 return 50;
+            case self::STATUS_CODE_RESTORE_DATABASE_PROCESSING:
+                return 75;
             case self::STATUS_CODE_RESTORE_DATABASE_COMPLETED:
             case self::STATUS_CODE_RESTORE_DATABASE_ERRORS:
-                return 75;
+                return 90;
             case self::STATUS_CODE_CLEANUP_COMPLETE:
             case self::STATUS_CODE_CLEANUP_FAILED:
                 return 100;

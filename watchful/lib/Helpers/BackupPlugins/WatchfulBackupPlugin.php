@@ -3,6 +3,7 @@
 namespace Watchful\Helpers\BackupPlugins;
 
 use Watchful\Backup\Processor;
+use Watchful\Model\BackupState;
 use WP_Error;
 
 class WatchfulBackupPlugin implements BackupPluginInterface
@@ -26,16 +27,17 @@ class WatchfulBackupPlugin implements BackupPluginInterface
     }
 
     /**
+     * Start backup with differential support
+     * @param array $options Options including backup_type and base_backup_files
      * @return array | WP_Error
      */
-    public function start_backup()
+    public function start_backup_with_options(array $options = [])
     {
-        return $this->processor->start_backup();
+        return $this->processor->start_backup_with_options($options);
     }
 
     /**
-     * @param string $backup_id
-     * @return array | false
+     * @return BackupState | WP_Error
      */
     public function step_backup(array $params)
     {
