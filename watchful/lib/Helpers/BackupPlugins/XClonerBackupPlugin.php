@@ -77,7 +77,11 @@ class XClonerBackupPlugin implements BackupPluginInterface
         }
 
         if (class_exists('\\Watchfulli\\XClonerCore\\Xcloner')) {
-            return new Xcloner($hash);
+            return new \Watchfulli\XClonerCore\Xcloner($hash);
+        }
+
+        if (class_exists('\\XCloner\\Watchfulli\\XClonerCore\\Xcloner')) {
+            return new \XCloner\Watchfulli\XClonerCore\Xcloner($hash);
         }
 
         throw new Exception('XCloner main class file not found.');

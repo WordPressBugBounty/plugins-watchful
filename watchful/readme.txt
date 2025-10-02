@@ -82,6 +82,9 @@ The Forever Free account at Watchful will allow you to manage and perform mainte
 Watchful launched in 2012 and began supporting WordPress in 2017.
 
 == Changelog ==
+= v2.0.7 =
+* Fix XCloner class instantiation logic
+
 = v2.0.6 =
 * Improve backup restoration
 * Fix XCloner compatibility
