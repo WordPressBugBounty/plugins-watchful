@@ -1,26 +1,12 @@
 <?php
-/**
- * Watchful deactivated plugins test.
- *
- * @version     2016-12-20 11:41 UTC+01
- * @package     Watchful WP Client
- * @author      Watchful
- * @authorUrl   https://watchful.net
- * @copyright   Copyright (c) 2020 watchful.net
- * @license     GNU/GPL
- */
 
 namespace Watchful\Audit\Tests;
 
 use stdClass;
-use Watchful\Audit\Audit;
+use Watchful\Audit\AbstractAudit;
 
-/**
- * Watchful deactivated plugins test class.
- */
-class HasDeactivatedPlugins extends Audit
+class HasDeactivatedPlugins extends AbstractAudit
 {
-
     public function __construct()
     {
         parent::__construct();
@@ -29,15 +15,10 @@ class HasDeactivatedPlugins extends Audit
         }
     }
 
-    /**
-     * Run the test.
-     *
-     * @return mixed
-     */
-    public function run()
+    public function run(?int $start = 0): stdClass
     {
         $all_plugins = get_plugins();
-        $active_plugins = get_option('active_plugins', array());
+        $active_plugins = get_option('active_plugins', []);
 
         if (count($all_plugins) === count($active_plugins)) {
             return $this->response->send_ok();
@@ -54,9 +35,9 @@ class HasDeactivatedPlugins extends Audit
      *
      * @return array of objects
      */
-    private function get_inactive_plugins($plugins, $active_plugins)
+    private function get_inactive_plugins(array $plugins, array $active_plugins): array
     {
-        $inactive = array();
+        $inactive = [];
 
         foreach ($plugins as $key => $item) {
             if (in_array($key, $active_plugins, true)) {

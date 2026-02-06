@@ -4,16 +4,20 @@ namespace Watchful\Restore;
 
 use Watchful\Helpers\Files;
 use Watchful\Helpers\Logger;
+use Watchful\Restore\Step\AnalyzeStep;
 use Watchful\Restore\Step\CleanupStep;
 use Watchful\Restore\Step\DownloadStep;
 use Watchful\Restore\Step\RestoreDatabaseStep;
-use Watchful\Restore\Step\RestoreDataStep;
+use Watchful\Restore\Step\RestoreUserFilesStep;
+use Watchful\Restore\Step\RestoreWordPressFilesStep;
 
 class Processor
 {
     public const LOG_CHANNEL = 'restore';
     private const STEP_ID_DOWNLOAD = 'download';
-    private const STEP_ID_RESTORE_DATA = 'restore_data';
+    private const STEP_ID_ANALYZE = 'analyze';
+    private const STEP_ID_RESTORE_USER_FILES = 'restore_user_files';
+    private const STEP_ID_RESTORE_WORDPRESS_FILES = 'restore_wordpress_files';
     private const STEP_ID_RESTORE_DB = 'restore_database';
     private const STEP_ID_CLEANUP = 'cleanup';
 
@@ -59,8 +63,20 @@ class Processor
             return $step->run($backup_id, $data);
         }
 
-        if ($step_id === self::STEP_ID_RESTORE_DATA) {
-            $step = new RestoreDataStep($this->file_helper, $this->logger);
+        if ($step_id === self::STEP_ID_ANALYZE) {
+            $step = new AnalyzeStep($this->file_helper, $this->logger);
+
+            return $step->run($backup_id, $data);
+        }
+
+        if ($step_id === self::STEP_ID_RESTORE_USER_FILES) {
+            $step = new RestoreUserFilesStep($this->file_helper, $this->logger);
+
+            return $step->run($backup_id, $data);
+        }
+
+        if ($step_id === self::STEP_ID_RESTORE_WORDPRESS_FILES) {
+            $step = new RestoreWordPressFilesStep($this->file_helper, $this->logger);
 
             return $step->run($backup_id, $data);
         }

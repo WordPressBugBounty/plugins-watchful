@@ -21,13 +21,8 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-/**
- * Watchful recusive file listing class.
- */
 class RecursiveListing
 {
-
-
     const CACHE_DURATION = 300;
     const CACHE_GROUP = 'watchful.audit.recursiveListing';
 

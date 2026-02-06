@@ -20,10 +20,6 @@ use Throwable;
  */
 class ExceptionHandler
 {
-
-    /**
-     * The constructor.
-     */
     public function __construct()
     {
         set_exception_handler(array($this, 'exception'));
@@ -38,6 +34,7 @@ class ExceptionHandler
     {
         $response = array(
             'error' => 1,
+            'trace' => $exception->getTraceAsString(),
         );
 
         if ($exception instanceof \Exception || $exception instanceof Exception || $exception instanceof Error) {
@@ -49,6 +46,7 @@ class ExceptionHandler
                                              'file' => $exception->getFile(),
                                              'line' => $exception->getLine(),
                                          ]),
+                'trace' => $exception->getTraceAsString(),
             );
         }
 

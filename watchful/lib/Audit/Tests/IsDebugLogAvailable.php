@@ -1,26 +1,13 @@
 <?php
-/**
- * Watchful debug enabled test.
- *
- * @version     2016-12-20 11:41 UTC+01
- * @package     Watchful WP Client
- * @author      Watchful
- * @authorUrl   https://watchful.net
- * @copyright   Copyright (c) 2020 watchful.net
- * @license     GNU/GPL
- */
 
 namespace Watchful\Audit\Tests;
 
-use Watchful\Audit\Audit;
+use stdClass;
+use Watchful\Audit\AbstractAudit;
 
-class IsDebugLogAvailable extends Audit
+class IsDebugLogAvailable extends AbstractAudit
 {
-
-    /**
-     * @return mixed
-     */
-    public function run()
+    public function run(?int $start = 0): stdClass
     {
         if (file_exists($this->getLogPath())) {
             return $this->response->send_ko();

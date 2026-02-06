@@ -1,32 +1,13 @@
 <?php
-/**
- * Watchful themes to update test.
- *
- * @version     2016-12-20 11:41 UTC+01
- * @package     Watchful WP Client
- * @author      Watchful
- * @authorUrl   https://watchful.net
- * @copyright   Copyright (c) 2020 watchful.net
- * @license     GNU/GPL
- */
 
 namespace Watchful\Audit\Tests;
 
 use stdClass;
-use Watchful\Audit\Audit;
+use Watchful\Audit\AbstractAudit;
 
-/**
- * Watchful themes to update test class.
- */
-class HasThemesToUpdate extends Audit
+class HasThemesToUpdate extends AbstractAudit
 {
-
-    /**
-     * Run the test.
-     *
-     * @return mixed
-     */
-    public function run()
+    public function run(?int $start = 0): stdClass
     {
         $list = $this->get_update_list();
 
@@ -40,16 +21,14 @@ class HasThemesToUpdate extends Audit
 
     /**
      * Get list of themes to update.
-     *
-     * @return array
      */
-    private function get_update_list()
+    private function get_update_list(): ?array
     {
         $status = get_site_transient('update_themes');
 
         if (false === $status) {
             wp_update_themes();
-            set_transient('update_themes', $status);
+            set_transient('update_themes', false);
         }
 
         $status = get_site_transient('update_themes');

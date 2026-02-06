@@ -1,78 +1,34 @@
 <?php
-/**
- * Watchful Robots.txt file test.
- *
- * @version     2016-12-20 11:41 UTC+01
- * @package     Watchful WP Client
- * @author      Watchful
- * @authorUrl   https://watchful.net
- * @copyright   Copyright (c) 2020 watchful.net
- * @license     GNU/GPL
- */
 
 namespace Watchful\Audit\Tests;
 
-use Watchful\Audit\Audit;
+use stdClass;
+use Watchful\Audit\AbstractAudit;
 use Watchful\Helpers\Connection;
 
-/**
- * Robots.txt file test class.
- */
-class RobotsTxt extends Audit
+class RobotsTxt extends AbstractAudit
 {
-
-    /**
-     * File signatures.
-     *
-     * @var array
-     */
-    private $signatures;
-
-    /**
-     * The class constructor.
-     */
-    public function __construct()
-    {
-        parent::__construct();
-        $this->loadSignatures();
-    }
-
-    /**
-     * Load a list of signatures, with cache
-     */
-    private function loadSignatures()
-    {
-        $signatures = get_transient('signatures');
-
-        if (false === $signatures) {
-            $connection = new Connection();
-            $signatures = $connection->get_signatures();
-
-            set_transient('signatures', $signatures, 6 * 3600);
-        }
-
-        $this->signatures = $signatures;
-    }
-
     /**
      * Run the test.
      *
      * @return mixed
      */
-    public function run()
+    public function run(?int $start = 0): stdClass
     {
+        $signatures = $this->load_signatures();
+
         $file_path = ABSPATH.'/robots.txt';
 
         if (!file_exists($file_path)) {
             return $this->response->send_ok();
         }
 
-        $matches = array();
-        $temp_matches = array();
+        $matches = [];
+        $temp_matches = [];
 
         $content = implode('', file($file_path, FILE_IGNORE_NEW_LINES));
 
-        foreach ($this->signatures as $signature) {
+        foreach ($signatures as $signature) {
             if ('regex.wp-robotstxt' !== $signature->type) {
                 continue;
             }
@@ -87,5 +43,19 @@ class RobotsTxt extends Audit
         }
 
         return $this->response->send_ko($matches);
+    }
+
+    private function load_signatures()
+    {
+        $signatures = get_transient('signatures');
+
+        if (false === $signatures) {
+            $connection = new Connection();
+            $signatures = $connection->get_signatures();
+
+            set_transient('signatures', $signatures, 6 * 3600);
+        }
+
+        return $signatures;
     }
 }

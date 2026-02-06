@@ -409,7 +409,7 @@ class Backups implements BaseControllerInterface
     public function data_xcloner(WP_REST_Request $request)
     {
         return [
-            'remote_storage' => (new XClonerBackupPlugin)->get_available_remote_storage(),
+            'remote_storage' => (new XClonerBackupPlugin())->get_available_remote_storage(),
         ];
     }
 

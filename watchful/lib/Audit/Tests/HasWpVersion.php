@@ -1,32 +1,14 @@
 <?php
-/**
- * Watchful WP version test.
- *
- * @version     2016-12-20 11:41 UTC+01
- * @package     Watchful WP Client
- * @author      Watchful
- * @authorUrl   https://watchful.net
- * @copyright   Copyright (c) 2020 watchful.net
- * @license     GNU/GPL
- */
 
 namespace Watchful\Audit\Tests;
 
-use Watchful\Audit\Audit;
+use stdClass;
+use Watchful\Audit\AbstractAudit;
 use WP_Http;
 
-/**
- * Watchful WP version test class.
- */
-class HasWpVersion extends Audit
+class HasWpVersion extends AbstractAudit
 {
-
-    /**
-     * Run the test.
-     *
-     * @return mixed
-     */
-    public function run()
+    public function run(?int $start = 0): stdClass
     {
         $body = $this->get_body(get_bloginfo('wpurl'));
 
@@ -56,12 +38,9 @@ class HasWpVersion extends Audit
 
     /**
      * Get the html body from the given url.
-     *
-     * @param string $url The page URL.
-     *
      * @return mixed
      */
-    private function get_body($url)
+    private function get_body(string $url)
     {
         if (!class_exists('WP_Http')) {
             require ABSPATH.WPINC.'/class-http.php';
@@ -75,12 +54,9 @@ class HasWpVersion extends Audit
 
     /**
      * Get the meta tags from the given HTML.
-     *
-     * @param string $html The HTML to check.
-     *
      * @return mixed
      */
-    private function get_meta_tags($html)
+    private function get_meta_tags(string $html)
     {
         // Extract content in <head> tags.
         $start = strpos($html, '<head');

@@ -18,9 +18,6 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-/**
- * Watchful file audit tools class.
- */
 class Tools
 {
 

@@ -1,32 +1,13 @@
 <?php
-/**
- * Watchful deactivated themes test.
- *
- * @version     2016-12-20 11:41 UTC+01
- * @package     Watchful WP Client
- * @author      Watchful
- * @authorUrl   https://watchful.net
- * @copyright   Copyright (c) 2020 watchful.net
- * @license     GNU/GPL
- */
 
 namespace Watchful\Audit\Tests;
 
 use stdClass;
-use Watchful\Audit\Audit;
+use Watchful\Audit\AbstractAudit;
 
-/**
- * Watchful deactivated themes test class.
- */
-class HasDeactivatedThemes extends Audit
+class HasDeactivatedThemes extends AbstractAudit
 {
-
-    /**
-     * Run the test.
-     *
-     * @return mixed
-     */
-    public function run()
+    public function run(?int $start = 0): stdClass
     {
         $all_themes = wp_get_themes();
 
@@ -37,13 +18,7 @@ class HasDeactivatedThemes extends Audit
         return $this->response->send_ok();
     }
 
-    /**
-     * Get the list of inactive themes
-     *
-     * @param array $theme_list List of themes.
-     * @return array of objects
-     */
-    private function get_inactive_theme($theme_list)
+    private function get_inactive_theme(array $theme_list): array
     {
         $active_theme = wp_get_theme();
         $inactive = array();

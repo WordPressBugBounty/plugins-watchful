@@ -12,12 +12,35 @@
 
 namespace Watchful\Controller;
 
-use DirectoryIterator;
 use stdClass;
-use Watchful\Audit\Files\FilesScanner;
+use Watchful\Audit\AbstractAudit;
+use Watchful\Audit\Files\FilesPermissions;
+use Watchful\Audit\Files\FoldersPermissions;
 use Watchful\Audit\Files\Integrity;
+use Watchful\Audit\Files\MalwareScanner;
+use Watchful\Audit\ScannerResponse;
+use Watchful\Audit\Tests\HasBadKeys;
+use Watchful\Audit\Tests\HasConfigChmod;
+use Watchful\Audit\Tests\HasDBPrefix;
+use Watchful\Audit\Tests\HasDbWeakPassword;
+use Watchful\Audit\Tests\HasDeactivatedPlugins;
+use Watchful\Audit\Tests\HasDeactivatedThemes;
+use Watchful\Audit\Tests\HasInstallOnSubdirectory;
+use Watchful\Audit\Tests\HasPhpVersion;
+use Watchful\Audit\Tests\HasThemesToUpdate;
+use Watchful\Audit\Tests\HasUnnecessaryLoginInfo;
+use Watchful\Audit\Tests\HasWPAdminUser;
+use Watchful\Audit\Tests\HasWPHtaccess;
+use Watchful\Audit\Tests\HasWpVersion;
+use Watchful\Audit\Tests\HaveAdminsWeakPassword;
+use Watchful\Audit\Tests\IsDebugEnabled;
+use Watchful\Audit\Tests\IsDebugLogAvailable;
+use Watchful\Audit\Tests\IsScriptDebugEnabled;
+use Watchful\Audit\Tests\IsUploadBrowsable;
+use Watchful\Audit\Tests\RobotsTxt;
 use Watchful\Exception;
 use Watchful\Helpers\Authentification;
+use Watchful\Helpers\Logger;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
@@ -32,22 +55,11 @@ if (!defined('ABSPATH')) {
  */
 class Audit implements BaseControllerInterface
 {
+    private $logger;
 
-    /**
-     * Scanner start value.
-     *
-     * @var int
-     */
-    protected $start;
-
-    /**
-     * Scanner constructor.
-     *
-     * @param int $start The start value for the scanner.
-     */
-    public function __construct($start = 0)
+    public function __construct()
     {
-        $this->start = $start;
+        $this->logger = new Logger('audit');
     }
 
     /**
@@ -58,19 +70,151 @@ class Audit implements BaseControllerInterface
      * @return WP_REST_Response
      *
      * @throws Exception If scanner task method doesn't exist.
+     * @throws \Exception
      */
-    public static function audit(WP_REST_Request $request)
+    public function audit(WP_REST_Request $request): WP_REST_Response
     {
         $task = $request->get_param('task');
-        $scanner = new Audit($request->get_param('start'));
+        $start = $request->get_param('start') ? (int)$request->get_param('start') : 0;
+        $class_name = $request->get_param('class_name');
 
-        if (!method_exists($scanner, $task)) {
-            throw new Exception('bad-task', 403);
+        $this->logger->info('Audit request received', ['task' => $task]);
+
+        switch ($task) {
+            case 'auditConfiguration':
+                $result = $this->auditConfiguration($start, $class_name);
+                break;
+            case 'auditMalwareScanner':
+                $result = $this->auditMalwareScanner($start);
+                break;
+            case 'auditFoldersPermissions':
+                $result = $this->auditFoldersPermissions($start);
+                break;
+            case 'auditFilesPermissions':
+                $result = $this->auditFilesPermissions($start);
+                break;
+            case 'auditCoreIntegrity':
+                $result = $this->auditCoreIntegrity($start);
+                break;
+            default:
+                throw new Exception('bad-task', 403);
         }
 
-        $result = $scanner->$task();
+        $this->logger->info('Audit finished', ['task' => $task]);
 
         return new WP_REST_Response($result);
+    }
+
+    public function auditConfiguration(int $start, ?string $class_name): stdClass
+    {
+        $this->init_audit();
+
+        $wp_audit = new stdClass();
+        $wp_audit->step = new stdClass();
+
+        $tests = [
+            HasBadKeys::class,
+            HasConfigChmod::class,
+            HasDBPrefix::class,
+            HasDbWeakPassword::class,
+            HasDeactivatedPlugins::class,
+            HasDeactivatedThemes::class,
+            HasInstallOnSubdirectory::class,
+            HasPhpVersion::class,
+            HasThemesToUpdate::class,
+            HasUnnecessaryLoginInfo::class,
+            HasWPAdminUser::class,
+            HasWPHtaccess::class,
+            HasWpVersion::class,
+            HaveAdminsWeakPassword::class,
+            IsDebugEnabled::class,
+            IsDebugLogAvailable::class,
+            IsScriptDebugEnabled::class,
+            IsUploadBrowsable::class,
+            RobotsTxt::class,
+        ];
+
+        if (!empty($class_name)) {
+            $this->logger->info('Starting from specific test', ['class_name' => $class_name]);
+            $tests = array_slice($tests, array_search($class_name, $tests, true));
+        }
+
+        foreach ($tests as $test_class) {
+            $this->logger->info('Starting test', ['class_name' => $test_class]);
+
+            /** @var AbstractAudit $test */
+            $test = new $test_class();
+
+            $class_name = explode('\\', $test_class);
+            $class_name = end($class_name);
+
+            $wp_audit->step->class_name = $class_name;
+            $wp_audit->step->completed = false;
+
+            if ($test->have_time() === false) {
+                break;
+            }
+
+            $results = $test->run($start);
+            $wp_audit->$class_name = $results;
+
+            if ($results->error === ScannerResponse::TIMEOUT_ERROR_CODE) {
+                $wp_audit->step->start = $results->values;
+                break;
+            }
+
+            $wp_audit->step->completed = true;
+        }
+
+        $this->logger->info('Audit finished');
+
+        return $wp_audit;
+    }
+
+    /**
+     * This method is called only once when the audit starts.
+     * We can do some initializations here before actually starting the audit.
+     *
+     * @return void
+     */
+    private function init_audit()
+    {
+        // Remove the filesystem cache for the WP root.
+        wp_cache_delete(ABSPATH, 'watchful.audit.recursiveListing');
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function auditMalwareScanner(int $start): stdClass
+    {
+        $scanner = new MalwareScanner();
+
+        return $scanner->run($start);
+    }
+
+    public function auditFoldersPermissions(int $start): stdClass
+    {
+        $scanner = new FoldersPermissions();
+
+        return $scanner->run($start);
+    }
+
+    public function auditFilesPermissions(int $start): stdClass
+    {
+        $scanner = new FilesPermissions();
+
+        return $scanner->run($start);
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function auditCoreIntegrity(int $start): stdClass
+    {
+        $model = new Integrity();
+
+        return $model->run($start);
     }
 
     /**
@@ -100,104 +244,13 @@ class Audit implements BaseControllerInterface
                             'task' => array(
                                 'default' => null,
                             ),
+                            'class_name' => array(
+                                'default' => null,
+                            ),
                         )
                     ),
                 ),
             )
         );
-    }
-
-    /**
-     * Get the audit configuration.
-     *
-     * @return stdClass
-     */
-    public function auditConfiguration()
-    { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName
-        $this->init_audit();
-
-        $wp_audit = new stdClass();
-        $ds = DIRECTORY_SEPARATOR;
-        $tests_folder = new DirectoryIterator(dirname(__FILE__).$ds.'..'.$ds.'Audit'.$ds.'Tests');
-        foreach ($tests_folder as $file_info) {
-            if ($file_info->isDot()) {
-                continue;
-            }
-
-            if ($file_info->isDir()) {
-                continue;
-            }
-
-            $file_name = basename($file_info->getFilename(), '.php');
-            $class = 'Watchful\Audit\Tests\\'.$file_name;
-            $test = new $class();
-            $wp_audit->$file_name = $test->run();
-        }
-
-        return $wp_audit;
-    }
-
-    /**
-     * This method is called only once when the audit starts.
-     * We can do some initializations here before actually starting the audit.
-     *
-     * @return void
-     */
-    private function init_audit()
-    {
-        // Remove the filesystem cache for the WP root.
-        wp_cache_delete(ABSPATH, 'watchful.audit.recursiveListing');
-    }
-
-    /**
-     * Audit the malware scanner.
-     *
-     * @return stdClass
-     */
-    public function auditMalwareScanner()
-    { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName
-        $scanner = new FilesScanner();
-        $result = $scanner->auditMalwareScanner($this->start);
-
-        return $result;
-    }
-
-    /**
-     * Audit the folder permissions.
-     *
-     * @return stdClass
-     */
-    public function auditFoldersPermissions()
-    { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName
-        $scanner = new FilesScanner();
-        $result = $scanner->auditFoldersPermissions($this->start);
-
-        return $result;
-    }
-
-    /**
-     * Audit the file permissions.
-     *
-     * @return stdClass
-     */
-    public function auditFilesPermissions()
-    { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName
-        $scanner = new FilesScanner();
-        $result = $scanner->auditFilesPermissions($this->start);
-
-        return $result;
-    }
-
-    /**
-     * Audit core integrity.
-     *
-     * @return stdClass
-     */
-    public function auditCoreIntegrity()
-    { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName
-        $model = new Integrity();
-        $result = $model->auditCoreIntegrity($this->start);
-
-        return $result;
     }
 }

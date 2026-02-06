@@ -120,4 +120,21 @@ class DirectoryHelper
 
         return $database_dir;
     }
+
+    public function save_json(string $backup_id, string $filename, array $data): void
+    {
+        $path = $this->get_restore_directory($backup_id).DIRECTORY_SEPARATOR.$filename;
+        file_put_contents($path, json_encode($data));
+    }
+
+    public function load_json(string $backup_id, string $filename): array
+    {
+        $path = $this->get_restore_directory($backup_id).DIRECTORY_SEPARATOR.$filename;
+        if (!file_exists($path)) {
+            return [];
+        }
+        $content = file_get_contents($path);
+
+        return json_decode($content, true) ?: [];
+    }
 }

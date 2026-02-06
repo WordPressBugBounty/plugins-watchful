@@ -13,8 +13,13 @@ class StepResponse implements JsonSerializable
     public const STATUS_CODE_RESTORE_DATABASE_FILE_NOT_FOUND = 'database_file_not_found';
     public const STATUS_CODE_CLEANUP_FAILED = 'cleanup_failed';
     public const STATUS_CODE_DOWNLOAD_COMPLETE = 'download_complete';
-    public const STATUS_CODE_RESTORE_DATA_COMPLETED = 'restore_data_completed';
-    public const STATUS_CODE_RESTORE_DATA_ERRORS = 'restore_data_errors';
+    public const STATUS_CODE_ANALYZE_COMPLETED = 'analyze_completed';
+    public const STATUS_CODE_RESTORE_USER_FILES_COMPLETED = 'restore_user_files_completed';
+    public const STATUS_CODE_RESTORE_USER_FILES_PARTIAL = 'restore_user_files_partial';
+    public const STATUS_CODE_RESTORE_USER_FILES_ERRORS = 'restore_user_files_errors';
+    public const STATUS_CODE_RESTORE_WORDPRESS_FILES_COMPLETED = 'restore_wordpress_files_completed';
+    public const STATUS_CODE_RESTORE_WORDPRESS_FILES_PARTIAL = 'restore_wordpress_files_partial';
+    public const STATUS_CODE_RESTORE_WORDPRESS_FILES_ERRORS = 'restore_wordpress_files_errors';
     public const STATUS_CODE_RESTORE_DATABASE_ERRORS = 'restore_database_errors';
     public const STATUS_CODE_RESTORE_DATABASE_COMPLETED = 'restore_database_completed';
     public const STATUS_CODE_RESTORE_DATABASE_PROCESSING = 'restore_database_processing';
@@ -48,11 +53,16 @@ class StepResponse implements JsonSerializable
     {
         switch ($this->status_code) {
             case self::STATUS_CODE_DOWNLOAD_COMPLETE:
-            case self::STATUS_CODE_RESTORE_DATA_COMPLETED:
+            case self::STATUS_CODE_ANALYZE_COMPLETED:
+            case self::STATUS_CODE_RESTORE_USER_FILES_COMPLETED:
+            case self::STATUS_CODE_RESTORE_USER_FILES_PARTIAL:
+            case self::STATUS_CODE_RESTORE_USER_FILES_ERRORS:
+            case self::STATUS_CODE_RESTORE_WORDPRESS_FILES_COMPLETED:
+            case self::STATUS_CODE_RESTORE_WORDPRESS_FILES_PARTIAL:
+            case self::STATUS_CODE_RESTORE_WORDPRESS_FILES_ERRORS:
             case self::STATUS_CODE_RESTORE_DATABASE_COMPLETED:
             case self::STATUS_CODE_RESTORE_DATABASE_PROCESSING:
             case self::STATUS_CODE_CLEANUP_COMPLETE:
-            case self::STATUS_CODE_RESTORE_DATA_ERRORS:
             case self::STATUS_CODE_RESTORE_DATABASE_ERRORS:
             case self::STATUS_CODE_CLEANUP_FAILED:
                 return true;
@@ -65,10 +75,17 @@ class StepResponse implements JsonSerializable
     {
         switch ($this->status_code) {
             case self::STATUS_CODE_DOWNLOAD_COMPLETE:
-                return 25;
-            case self::STATUS_CODE_RESTORE_DATA_COMPLETED:
-            case self::STATUS_CODE_RESTORE_DATA_ERRORS:
-                return 50;
+                return 15;
+            case self::STATUS_CODE_ANALYZE_COMPLETED:
+                return 30;
+            case self::STATUS_CODE_RESTORE_USER_FILES_COMPLETED:
+            case self::STATUS_CODE_RESTORE_USER_FILES_PARTIAL:
+            case self::STATUS_CODE_RESTORE_USER_FILES_ERRORS:
+                return 45;
+            case self::STATUS_CODE_RESTORE_WORDPRESS_FILES_COMPLETED:
+            case self::STATUS_CODE_RESTORE_WORDPRESS_FILES_PARTIAL:
+            case self::STATUS_CODE_RESTORE_WORDPRESS_FILES_ERRORS:
+                return 60;
             case self::STATUS_CODE_RESTORE_DATABASE_PROCESSING:
                 return 75;
             case self::STATUS_CODE_RESTORE_DATABASE_COMPLETED:

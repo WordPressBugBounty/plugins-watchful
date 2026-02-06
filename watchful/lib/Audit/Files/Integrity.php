@@ -1,40 +1,23 @@
 <?php
-/**
- * Watchful file integrity checker.
- *
- * @version     2016-12-20 11:41 UTC+01
- * @package     Watchful WP Client
- * @author      Watchful
- * @authorUrl   https://watchful.net
- * @copyright   Copyright (c) 2020 watchful.net
- * @license     GNU/GPL
- */
 
 namespace Watchful\Audit\Files;
 
+use Exception;
 use stdClass;
-use Watchful\Audit\AuditProcess;
+use Watchful\Audit\AbstractAudit;
 use Watchful\Helpers\Connection;
 
 if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
 }
 
-/**
- * Watchful file integrity class.
- */
-class Integrity extends AuditProcess
+class Integrity extends AbstractAudit
 {
-
-
     /**
      * Compare the hashes of the core files
-     *
-     * @param int $start The start index.
-     *
-     * @return stdClass
+     * @throws Exception
      */
-    public function auditCoreIntegrity($start)
+    public function run(?int $start = 0): stdClass
     {
         $connection = new Connection();
         $data = $connection->get_hash();
@@ -56,7 +39,7 @@ class Integrity extends AuditProcess
             $status = $this->check_integrity_file($full_path, $file_hash, $this->get_memory_limit_in_bytes());
 
             if ('ok' !== $status) {
-                array_push($result->$status, preg_replace('#^wordpress/#', '/', $file_path));
+                $result->$status[] = preg_replace('#^wordpress/#', '/', $file_path);
             }
             $current++;
         }
@@ -69,14 +52,8 @@ class Integrity extends AuditProcess
 
     /**
      * Compare the md5 hash of a file with a reference.
-     *
-     * @param string $full_path The full path of the file.
-     * @param string $file_hash The hash of the file.
-     * @param int $memory_limit The memory limit.
-     *
-     * @return string
      */
-    private function check_integrity_file($full_path, $file_hash, $memory_limit)
+    private function check_integrity_file(string $full_path, string $file_hash, int $memory_limit): string
     {
         if (!file_exists($full_path)) {
             return 'missing';

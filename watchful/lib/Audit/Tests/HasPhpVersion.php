@@ -1,32 +1,14 @@
 <?php
-/**
- * Watchful PHP version test.
- *
- * @version     2016-12-20 11:41 UTC+01
- * @package     Watchful WP Client
- * @author      Watchful
- * @authorUrl   https://watchful.net
- * @copyright   Copyright (c) 2020 watchful.net
- * @license     GNU/GPL
- */
 
 namespace Watchful\Audit\Tests;
 
-use Watchful\Audit\Audit;
+use stdClass;
+use Watchful\Audit\AbstractAudit;
 use WP_Http;
 
-/**
- * Watchful PHP version test class.
- */
-class HasPhpVersion extends Audit
+class HasPhpVersion extends AbstractAudit
 {
-
-    /**
-     * Run the test.
-     *
-     * @return mixed
-     */
-    public function run()
+    public function run(?int $start = 0): stdClass
     {
         $headers = $this->get_headers(home_url());
         $bad_headers = array();
@@ -52,12 +34,9 @@ class HasPhpVersion extends Audit
 
     /**
      * Get the http header from the given url
-     *
-     * @param string $url The URL to retrieve headers from.
-     *
      * @return mixed
      */
-    private function get_headers($url)
+    private function get_headers(string $url)
     {
         if (!class_exists('WP_Http')) {
             require ABSPATH.WPINC.'/class-http.php';

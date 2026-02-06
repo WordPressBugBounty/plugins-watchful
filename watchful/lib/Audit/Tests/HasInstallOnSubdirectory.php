@@ -1,58 +1,26 @@
 <?php
-/**
- * Watchful install on subdirectory test.
- *
- * @version     2016-12-20 11:41 UTC+01
- * @package     Watchful WP Client
- * @author      Watchful
- * @authorUrl   https://watchful.net
- * @copyright   Copyright (c) 2020 watchful.net
- * @license     GNU/GPL
- */
 
 namespace Watchful\Audit\Tests;
 
-use Watchful\Audit\Audit;
+use stdClass;
+use Watchful\Audit\AbstractAudit;
 use Watchful\Audit\Files\RecursiveListing;
 
-/**
- * Watchful install on subdirectory test class.
- */
-class HasInstallOnSubdirectory extends Audit
+class HasInstallOnSubdirectory extends AbstractAudit
 {
-
-    /**
-     * The file system structure.
-     *
-     * @var stdClass
-     */
-    private $structure;
-
-    /**
-     * The class constructor.
-     */
-    public function __construct()
+    public function run(?int $start = 0): stdClass
     {
-        parent::__construct();
         $recursive_listing = new RecursiveListing();
-        $this->structure = $recursive_listing->get_structure(ABSPATH);
-    }
+        $structure = $recursive_listing->get_structure(ABSPATH);
 
-    /**
-     * Run the test.
-     *
-     * @return mixed
-     */
-    public function run()
-    {
-        $elements = $this->structure->files;
-        $paths = array();
+        $elements = $structure->files;
+        $paths = [];
 
-        $escaped_base_path = preg_replace(array('#\/#', '#\.#'), array('\/', '\.'), ABSPATH);
+        $escaped_base_path = preg_replace(['#\/#', '#\.#'], ['\/', '\.'], ABSPATH);
         $pattern = '#^'.$escaped_base_path.'([a-z0-9_\-\.\s]*\/){1,2}wp-config\.php$#i';
 
         foreach ($elements as $element) {
-            if (preg_match($pattern, $element) && $this->isAWordpressConfigFile($element)) {
+            if (preg_match($pattern, $element) && $this->is_a_wp_config_file($element)) {
                 $relative_path = str_replace(ABSPATH, '', $element);
                 $paths[] = preg_replace('#wp-config.php$#', '', $relative_path);
             }
@@ -65,14 +33,7 @@ class HasInstallOnSubdirectory extends Audit
         return $this->response->send_ok();
     }
 
-    /**
-     * Check if the file is a WordPress config file
-     *
-     * @param string $file_path The file path.
-     *
-     * @return boolean
-     */
-    private function isAWordpressConfigFile($file_path)
+    private function is_a_wp_config_file(string $file_path): bool
     {
         $content = implode('', file($file_path, FILE_IGNORE_NEW_LINES));
 
