@@ -68,6 +68,17 @@ class Routes
         new ShutdownHandler();
         $logger = new Logger();
 
+        $namespace = '';
+        $route     = '/watchful/v1';
+        $args      = [
+            'methods'  => 'GET',
+            'callback' => function () {
+                throw new Exception('unauthorized', 403);
+            },
+        ];
+
+        rest_get_server()->register_route($namespace, $route, $args, true);
+
         $scanner = new Audit();
         $scanner->register_routes();
 

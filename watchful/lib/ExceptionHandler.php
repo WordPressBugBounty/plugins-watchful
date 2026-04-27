@@ -22,32 +22,37 @@ class ExceptionHandler
 {
     public function __construct()
     {
-        set_exception_handler(array($this, 'exception'));
+        set_exception_handler([$this, 'exception']);
     }
 
     /**
      * Handle the exception.
      *
-     * @param \Exception|Throwable|Error $exception The exception to handle.
+     * @param   \Exception|Throwable|Error  $exception  The exception to handle.
      */
     public function exception($exception)
     {
-        $response = array(
+        $response = [
             'error' => 1,
             'trace' => $exception->getTraceAsString(),
-        );
+        ];
 
-        if ($exception instanceof \Exception || $exception instanceof Exception || $exception instanceof Error) {
-            $response = array(
-                'error' => 1,
-                'code' => $exception->getCode(),
+        if ($exception instanceof \Exception || $exception instanceof Error) {
+            $response = [
+                'error'   => 1,
+                'code'    => $exception->getCode(),
                 'message' => $exception->getMessage(),
-                'details' => json_encode([
-                                             'file' => $exception->getFile(),
-                                             'line' => $exception->getLine(),
-                                         ]),
-                'trace' => $exception->getTraceAsString(),
-            );
+            ];
+
+            if ($this->should_include_trace()) {
+                $response['details'] = json_encode(
+                    [
+                        'file' => $exception->getFile(),
+                        'line' => $exception->getLine(),
+                    ]
+                );
+                $response['trace']   = $exception->getTraceAsString();
+            }
         }
 
         // Check for instance of `\Watchful\Exception`.
@@ -60,5 +65,24 @@ class ExceptionHandler
         }
         echo wp_json_encode($response);
         die();
+    }
+
+    /**
+     * Standard WP methods to detect logged in user are not available.
+     * We'll have to define a constant somewhere.
+     *
+     * @return bool
+     */
+    private function should_include_trace(): bool
+    {
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            return true;
+        }
+
+        if (defined('WATCHFUL_AUTENTICATED') && WATCHFUL_AUTENTICATED) {
+            return true;
+        }
+
+        return false;
     }
 }

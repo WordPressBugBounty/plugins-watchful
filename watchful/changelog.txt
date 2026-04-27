@@ -1,3 +1,6 @@
+= v2.0.10 =
+* Improve security by hiding details from response and routes list
+
 = v2.0.9 =
 * Fix a bug that returned wrong file and folder permissions on Windows servers
 

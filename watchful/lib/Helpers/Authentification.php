@@ -102,6 +102,8 @@ class Authentification
             throw new Exception('bad-timestamp', 403);
         }
 
+        define('WATCHFUL_AUTENTICATED', true);
+
         return true;
     }
 
