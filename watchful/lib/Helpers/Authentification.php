@@ -102,7 +102,9 @@ class Authentification
             throw new Exception('bad-timestamp', 403);
         }
 
-        define('WATCHFUL_AUTENTICATED', true);
+        if (!defined('WATCHFUL_AUTENTICATED')) {
+            define('WATCHFUL_AUTENTICATED', true);
+        }
 
         return true;
     }
