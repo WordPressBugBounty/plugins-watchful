@@ -3,7 +3,7 @@
  * Plugin Name: Watchful
  * Plugin URI: https://app.watchful.net
  * Description: Remote Website Management Plugin by Watchful
- * Version: 2.0.11
+ * Version: 2.0.12
  * Author: watchful
  * Author URI: https://watchful.net
  * License: GPL
@@ -23,11 +23,11 @@ if (!defined('WATCHFUL_PLUGIN_DIR')) {
 }
 
 if (!defined('WATCHFUL_PLUGIN_CONTENT_DIR')) {
-    define('WATCHFUL_PLUGIN_CONTENT_DIR', WP_CONTENT_DIR.DIRECTORY_SEPARATOR.'watchful');
+    define('WATCHFUL_PLUGIN_CONTENT_DIR', WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'watchful');
 }
 
 if (!defined('WATCHFUL_VERSION')) {
-    require_once ABSPATH.'wp-admin/includes/plugin.php';
+    require_once ABSPATH . 'wp-admin/includes/plugin.php';
     define('WATCHFUL_VERSION', get_plugin_data(__FILE__, false, false)['Version']);
 }
 

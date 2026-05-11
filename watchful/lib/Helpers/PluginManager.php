@@ -687,7 +687,7 @@ class PluginManager
             $new_mapping['authorurl'] = $plugin['PluginURI'];
             $new_mapping['version'] = $plugin['Version'];
             $new_mapping['updateVersion'] = $plugin['latest_version'];
-            $new_mapping['vUpdate'] = $plugin['latest_version'] !== $plugin['Version'];
+            $new_mapping['vUpdate'] = $this->is_plugin_update_available($plugin['Version'], $plugin['latest_version']);
             $new_mapping['type'] = 'plugin';
             $new_mapping['network'] = $plugin['Network'];
             $new_mapping['creationdate'] = null;
@@ -698,5 +698,35 @@ class PluginManager
         }
 
         return $output;
+    }
+
+    /**
+     * @param string $installed_version
+     * @param string $latest_version
+     *
+     * @return bool
+     */
+    private function is_plugin_update_available($installed_version, $latest_version)
+    {
+        if ($this->is_semantic_version($installed_version) && $this->is_semantic_version($latest_version)) {
+            return version_compare($latest_version, $installed_version, '>');
+        }
+
+        return $latest_version !== $installed_version;
+    }
+
+    /**
+     * @param string $version
+     *
+     * @return bool
+     */
+    private function is_semantic_version($version)
+    {
+        return (bool)preg_match(
+            '/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)'.
+            '(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?'.
+            '(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/',
+            $version
+        );
     }
 }
