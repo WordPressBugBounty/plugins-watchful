@@ -12,6 +12,11 @@
 
 namespace Watchful;
 
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly.
+}
+
+
 use Watchful\Helpers\ResponseFormatter;
 
 /**
@@ -38,6 +43,7 @@ class ShutdownHandler
             'details' => $error,
         );
 
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- output is JSON-encoded; HTML escaping would corrupt the payload.
         echo ResponseFormatter::add_response_delimiters(wp_json_encode($response));
     }
 }

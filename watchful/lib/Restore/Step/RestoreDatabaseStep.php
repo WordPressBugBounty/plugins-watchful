@@ -11,6 +11,7 @@ use Watchful\Helpers\Logger;
 use Watchful\Restore\DirectoryHelper;
 use Watchful\Restore\StepResponse;
 use wpdb;
+use Watchful\Helpers\PhpFilesystem;
 
 class RestoreDatabaseStep implements StepInterface
 {
@@ -61,7 +62,7 @@ class RestoreDatabaseStep implements StepInterface
 
         $sql_file = $database_dir.DIRECTORY_SEPARATOR.$current_table.'.sql';
 
-        $handler = @fopen($sql_file, 'r');
+        $handler = @PhpFilesystem::fopen($sql_file, 'r');
 
         if ($handler === false) {
             $this->logger->error('Failed to open SQL file', [
@@ -143,8 +144,8 @@ class RestoreDatabaseStep implements StepInterface
             }
         }
 
-        @fclose($handler);
-        @unlink($sql_file);
+        @PhpFilesystem::fclose($handler);
+        wp_delete_file($sql_file);
 
         $db_restoration_completed = $this->get_current_table($backup_id, $stats['current_table']) === null;
 
@@ -195,7 +196,7 @@ class RestoreDatabaseStep implements StepInterface
             $destination_path = $database_dir.DIRECTORY_SEPARATOR.str_replace($zip_dir, '', $zip_entry);
 
             @file_put_contents($destination_path, stream_get_contents($stream));
-            @fclose($stream);
+            @PhpFilesystem::fclose($stream);
 
             $this->logger->info('Unzipped SQL file', [
                 'destination_path' => $destination_path,
@@ -247,7 +248,7 @@ class RestoreDatabaseStep implements StepInterface
 
     private function query(string $query, wpdb $wpdb, bool $retry = true)
     {
-        $query_success = mysqli_real_query($wpdb->dbh, $query);
+        $query_success = mysqli_real_query($wpdb->dbh, $query); // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_real_query -- Direct mysqli required for non-buffered bulk SQL restore; $wpdb overhead is unsuitable here.
 
         if ($query_success) {
             return true;
@@ -270,8 +271,8 @@ class RestoreDatabaseStep implements StepInterface
 
         $context = [
             'query' => $query,
-            'error' => mysqli_errno($wpdb->dbh),
-            'error_message' => mysqli_error($wpdb->dbh),
+            'error' => mysqli_errno($wpdb->dbh), // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_errno -- Direct mysqli required for non-buffered bulk SQL restore.
+            'error_message' => mysqli_error($wpdb->dbh), // phpcs:ignore WordPress.DB.RestrictedFunctions.mysql_mysqli_error -- Direct mysqli required for non-buffered bulk SQL restore.
         ];
 
         if ($retry === false) {

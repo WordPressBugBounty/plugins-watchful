@@ -41,8 +41,19 @@ class Tools
         $this->path = $path;
 
         if (!is_readable($path) && !$write) {
-            throw new Exception($path.' path not readable', 400);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception($path . ' path not readable', 400);
         }
+    }
+
+    private function wp_filesystem(): \WP_Filesystem_Base
+    {
+        global $wp_filesystem;
+        if (!$wp_filesystem instanceof \WP_Filesystem_Base) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+        return $wp_filesystem;
     }
 
     /**
@@ -69,11 +80,12 @@ class Tools
     public function chmod($permissions)
     {
         if (!$this->is_valid_permission($permissions)) {
-            throw new Exception('permissions '.$permissions.' is invalid', 400);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception('permissions ' . $permissions . ' is invalid', 400);
         }
 
         // Change permissions.
-        $result = @chmod($this->path, octdec($permissions));
+        $result = $this->wp_filesystem()->chmod($this->path, octdec($permissions));
 
         if (!$result) {
             throw new Exception('permissions could not be set', 400);
@@ -106,7 +118,7 @@ class Tools
     /**
      * Delete a file or folder
      *
-     * @return boolean
+     * @return bool
      * @see Tools::rmdir
      */
     public function delete()
@@ -114,7 +126,7 @@ class Tools
         if (is_dir($this->path)) {
             $result = $this->rmdir();
         } else {
-            $result = unlink($this->path);
+            $result = $this->wp_filesystem()->delete($this->path);
         }
 
         return $result;
@@ -123,7 +135,7 @@ class Tools
     /**
      * Internal directory removal
      *
-     * @return boolean
+     * @return bool
      * @see Tools::delete
      */
     private function rmdir()
@@ -138,7 +150,7 @@ class Tools
         // Remove all files first.
         if (!empty($structure->files)) {
             foreach ($structure->files as $file) {
-                $result = $result && unlink($file);
+                $result = $result && $this->wp_filesystem()->delete($file);
             }
             unset($structure->files);
         }
@@ -151,7 +163,7 @@ class Tools
                     continue;
                 }
 
-                $result = $result && rmdir($dir);
+                $result = $result && $this->wp_filesystem()->rmdir($dir);
             }
             unset($structure->dirs);
         }
@@ -173,22 +185,25 @@ class Tools
     public function write($data, $fileperms, $dirperms)
     {
         if (!$this->is_valid_permission($fileperms)) {
-            throw new Exception('file permissions '.$fileperms.' are invalid', 400);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception('file permissions ' . $fileperms . ' are invalid', 400);
         }
 
         if (!$this->is_valid_permission($dirperms)) {
-            throw new Exception('directory permissions '.$dirperms.' are invalid', 400);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception('directory permissions ' . $dirperms . ' are invalid', 400);
         }
 
         // Confirm that base directory exists before attempting to create file.
         $dir = dirname($this->path);
         if (!is_dir($dir)) {
-            mkdir($dir, octdec($dirperms), true);
+            wp_mkdir_p($dir);
+            $this->wp_filesystem()->chmod($dir, octdec($dirperms));
         }
         // Write data to file.
         $result = file_put_contents($this->path, $data);
         // Force permissions on file.
-        $permissions = @chmod($this->path, octdec($fileperms));
+        $permissions = $this->wp_filesystem()->chmod($this->path, octdec($fileperms));
 
         if (!$permissions) {
             throw new Exception('fileperms could not be set', 400);

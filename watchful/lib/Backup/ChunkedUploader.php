@@ -6,6 +6,7 @@ use Exception;
 use Watchful\Helpers\Logger;
 use Watchful\Model\UploadPart;
 use Watchful\Model\UploadStep;
+use Watchful\Helpers\PhpFilesystem;
 
 final class ChunkedUploader
 {
@@ -30,7 +31,7 @@ final class ChunkedUploader
             throw new Exception('File not found');
         }
 
-        $handle = fopen($filePath, 'rb');
+        $handle = PhpFilesystem::fopen($filePath, 'rb');
 
         if ($uploadStep->total_size === 0) {
             $uploadStep->total_size = filesize($filePath);
@@ -46,7 +47,7 @@ final class ChunkedUploader
 
         fseek($handle, $uploadStep->current_offset);
 
-        $chunk = fread($handle, $this->chunkSize);
+        $chunk = PhpFilesystem::fread($handle, $this->chunkSize);
         if ($chunk !== false) {
             $response = $this->upload_part(
                 $url,
@@ -68,7 +69,7 @@ final class ChunkedUploader
             $uploadStep->completed = true;
         }
 
-        fclose($handle);
+        PhpFilesystem::fclose($handle);
     }
 
     /**
@@ -82,25 +83,26 @@ final class ChunkedUploader
 
         /** @var array|null $response */
         $response = wp_remote_request($url, [
-            'method' => 'PUT',
+            'method'  => 'PUT',
             'timeout' => ini_get('max_execution_time') * 0.8,
             'headers' => ['Content-Length' => strlen($data)],
-            'body' => $data,
+            'body'    => $data,
         ]);
 
         if ($response === null || is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
             $this->logger->warning('The part could not be uploaded', [
-                'response' => $response,
+                'response'         => $response,
                 'response_message' => wp_remote_retrieve_response_message($response),
-                'body' => wp_remote_retrieve_body($response),
-                'url' => $url,
+                'body'             => wp_remote_retrieve_body($response),
+                'url'              => $url,
             ]);
 
-            throw new Exception(
-                "The part could not be uploaded: ".wp_remote_retrieve_response_message(
+            $error = "The part could not be uploaded: " . wp_remote_retrieve_response_message(
                     $response
-                ).' '.wp_remote_retrieve_body($response).' URL: '.$url
-            );
+                ) . ' ' . wp_remote_retrieve_body($response) . ' URL: ' . $url;
+
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception($error);
         }
 
         return $response;

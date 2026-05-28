@@ -6,6 +6,7 @@ use Watchful\Helpers\Files;
 use Watchful\Helpers\Logger;
 use Watchful\Restore\DirectoryHelper;
 use Watchful\Restore\StepResponse;
+use Watchful\Helpers\PhpFilesystem;
 
 class DownloadStep implements StepInterface
 {
@@ -158,7 +159,7 @@ class DownloadStep implements StepInterface
 
     private function chunked_download(string $url, string $file_path, int $file_size): StepResponse
     {
-        $fp = @fopen($file_path, 'wb');
+        $fp = @PhpFilesystem::fopen($file_path, 'wb');
         if (!$fp) {
             $this->logger->error('Failed to open file for writing', [
                 'file_path' => $file_path,
@@ -220,7 +221,7 @@ class DownloadStep implements StepInterface
                 break;
             }
 
-            $write_result = @fwrite($fp, $data);
+            $write_result = @PhpFilesystem::fwrite($fp, $data);
             if ($write_result === false || $write_result !== $bytes_count) {
                 $error_message = 'Failed to write chunk data to file';
                 break;
@@ -237,14 +238,14 @@ class DownloadStep implements StepInterface
             }
         }
 
-        @fclose($fp);
+        @PhpFilesystem::fclose($fp);
 
         if ($error_message !== null) {
             $this->logger->error('Chunked download failed', [
                 'error' => $error_message,
                 'file_path' => $file_path,
             ]);
-            @unlink($file_path);
+            wp_delete_file($file_path);
 
             return new StepResponse(
                 false,
@@ -262,7 +263,7 @@ class DownloadStep implements StepInterface
                 'actual_size' => $actual_size,
                 'file_path' => $file_path,
             ]);
-            @unlink($file_path);
+            wp_delete_file($file_path);
 
             return new StepResponse(
                 false,

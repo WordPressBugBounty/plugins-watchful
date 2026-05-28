@@ -2,6 +2,11 @@
 
 namespace Watchful\Helpers\BackupPlugins;
 
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly.
+}
+
+
 use DateTime;
 use Watchful\Exception;
 use watchfulli\XClonerCore\Xcloner;
@@ -15,9 +20,9 @@ use watchfulli\XClonerCore\Xcloner_Standalone;
 
 class XClonerBackupPlugin implements BackupPluginInterface
 {
-    static $backup_archive_extensions = array("zip", "tar", "tgz", "tar.gz", "gz", "csv");
+    public static $backup_archive_extensions = array("zip", "tar", "tgz", "tar.gz", "gz", "csv");
 
-    static $xclonerBasePath = WP_PLUGIN_DIR.'/xcloner-backup-and-restore/xcloner.php';
+    public static $xclonerBasePath = WP_PLUGIN_DIR . '/xcloner-backup-and-restore/xcloner.php';
 
     /** @var Xcloner | Xcloner_Standalone */
     private $plugin_container;
@@ -40,7 +45,7 @@ class XClonerBackupPlugin implements BackupPluginInterface
             throw new Exception('XCloner plugin installation directory not found.');
         }
 
-        require_once(plugin_dir_path(self::$xclonerBasePath).'/vendor/autoload.php');
+        require_once(plugin_dir_path(self::$xclonerBasePath) . '/vendor/autoload.php');
         require_once(self::get_xcloner_main_class_path());
 
         if ($hash !== null) {
@@ -56,11 +61,11 @@ class XClonerBackupPlugin implements BackupPluginInterface
      */
     private static function get_xcloner_main_class_path()
     {
-        if (file_exists(plugin_dir_path(self::$xclonerBasePath).'includes/class-xcloner.php')) {
-            return plugin_dir_path(self::$xclonerBasePath).'includes/class-xcloner.php';
+        if (file_exists(plugin_dir_path(self::$xclonerBasePath) . 'includes/class-xcloner.php')) {
+            return plugin_dir_path(self::$xclonerBasePath) . 'includes/class-xcloner.php';
         }
 
-        if (file_exists(plugin_dir_path(self::$xclonerBasePath).'lib/Xcloner.php')) {
+        if (file_exists(plugin_dir_path(self::$xclonerBasePath) . 'lib/Xcloner.php')) {
             return self::$xclonerBasePath;
         }
 
@@ -189,7 +194,8 @@ class XClonerBackupPlugin implements BackupPluginInterface
             )
         ) {
             throw new Exception(
-                'Backup remote resource "'.$params['user_settings']['remote_storage']['resource'].'"  is unavailable'
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+                'Backup remote resource "' . $params['user_settings']['remote_storage']['resource'] . '"  is unavailable'
             );
         }
     }
@@ -224,8 +230,8 @@ class XClonerBackupPlugin implements BackupPluginInterface
     {
         if (empty($params['file_recursion'])) {
             $params['file_recursion'] = array(
-                'init' => true,
-                'finished' => false,
+                'init'            => true,
+                'finished'        => false,
                 'total_files_num' => 0,
 
             );
@@ -248,7 +254,7 @@ class XClonerBackupPlugin implements BackupPluginInterface
     {
         if (empty($params['database_recursion'])) {
             $params['database_recursion'] = array(
-                'init' => true,
+                'init'     => true,
                 'finished' => false,
             );
         }
@@ -280,18 +286,18 @@ class XClonerBackupPlugin implements BackupPluginInterface
     {
         if (empty($params['incremental_backup'])) {
             $params['incremental_backup'] = array(
-                'init' => true,
+                'init'     => true,
                 'finished' => false,
-                'extra' => array(),
+                'extra'    => array(),
             );
         }
 
         if (empty($params['backup_parameters'])) {
             $params['backup_parameters'] = array(
-                'backup_name' => 'backup_[domain]-[time]-sql',
+                'backup_name'        => 'backup_[domain]-[time]-sql',
                 'email_notification' => '',
-                'diff_start_date' => '',
-                'backup_comments' => 'This backup comes from Watchful',
+                'diff_start_date'    => '',
+                'backup_comments'    => 'This backup comes from Watchful',
             );
         }
 
@@ -322,7 +328,7 @@ class XClonerBackupPlugin implements BackupPluginInterface
         }
 
         $params['remote_storage'] = array(
-            'init' => true,
+            'init'     => true,
             'finished' => false,
         );
         /** @var Xcloner_Remote_Storage $xcloner_remote_storage */

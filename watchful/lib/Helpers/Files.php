@@ -43,16 +43,16 @@ class Files
 
         // Create a tmp dir if needed.
         if (!is_dir($tmp_dir)) {
-            mkdir($tmp_dir);
+            PhpFilesystem::mkdir($tmp_dir);
             $has_tmp_dir = false;
         }
 
-        if (!is_writable($tmp_dir)) {
+        if (!PhpFilesystem::is_writable($tmp_dir)) {
             throw new Exception('tmp directory is not writable', 403);
         }
 
-        $tmp_file = $tmp_dir.'/'.md5($zip).'.zip';
-        $extract_path = $tmp_dir.'/'.md5($zip);
+        $tmp_file = $tmp_dir . '/' . md5($zip) . '.zip';
+        $extract_path = $tmp_dir . '/' . md5($zip);
 
         // Get the zip content.
         $connection = new Connection();
@@ -70,7 +70,8 @@ class Files
 
         $unzip = unzip_file($tmp_file, $extract_path);
         if (is_wp_error($unzip)) {
-            throw new Exception('unable to unzip archive: '.$unzip->get_error_message(), 500);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception('unable to unzip archive: ' . $unzip->get_error_message(), 500);
         }
 
         $directories = array();
@@ -81,15 +82,15 @@ class Files
                 continue;
             }
 
-            if (is_dir($extract_path.'/'.$directory)) {
+            if (is_dir($extract_path . '/' . $directory)) {
                 $directories[] = $directory;
             }
         }
 
         // Remove tmp file (and tmp dir if it did not exist).
-        unlink($tmp_file);
+        PhpFilesystem::unlink($tmp_file);
         if (!$has_tmp_dir) {
-            rmdir($tmp_dir);
+            PhpFilesystem::rmdir($tmp_dir);
         }
 
         // Delete the extracted directory.
@@ -119,17 +120,17 @@ class Files
         /** @var $wp_filesystem WP_Filesystem_Direct */
         global $wp_filesystem;
         if (empty($wp_filesystem)) {
-            require_once(ABSPATH.'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
             WP_Filesystem();
         }
 
         $result = true;
-        $htaccess_path = $path.'/.htaccess';
+        $htaccess_path = $path . '/.htaccess';
         if (!file_exists($htaccess_path)) {
             $result = $wp_filesystem->put_contents($htaccess_path, "Deny from all\n");
         }
 
-        $index_path = $path.'/index.php';
+        $index_path = $path . '/index.php';
         if (!file_exists($index_path)) {
             $result = $wp_filesystem->put_contents($index_path, "<?php // Silence is golden. ?>\n");
         }

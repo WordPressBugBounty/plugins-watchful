@@ -37,11 +37,12 @@ class FSPermissions
     public function __construct($permissions)
     {
         if (strlen($permissions) < 4) {
-            $permissions = 0 .$permissions;
+            $permissions = 0 . $permissions;
         }
 
         if (4 !== strlen($permissions)) {
-            throw new Exception('FSPermissions - invalid permissions format : '.$permissions);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception('FSPermissions - invalid permissions format : ' . $permissions);
         }
 
         $this->permissions = $permissions;
@@ -59,7 +60,8 @@ class FSPermissions
     public static function from_path($path)
     {
         if (!is_readable($path)) {
-            throw new Exception('FSPermissions - unreadable file : '.$path);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception('FSPermissions - unreadable file : ' . $path);
         }
 
         return new self(substr(sprintf('%o', fileperms($path)), -4));

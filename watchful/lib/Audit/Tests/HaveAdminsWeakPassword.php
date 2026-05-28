@@ -62,9 +62,9 @@ class HaveAdminsWeakPassword extends AbstractAudit
         $this->logger->log(
             'Checking passwords',
             [
-                'start_admin_index' => $start_admin_index,
+                'start_admin_index'    => $start_admin_index,
                 'start_password_index' => $start_password_index,
-                'admins_count' => count($admins),
+                'admins_count'         => count($admins),
             ]
         );
 
@@ -87,10 +87,12 @@ class HaveAdminsWeakPassword extends AbstractAudit
                 ]);
 
                 if ($this->have_time() === false) {
+                    // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
                     throw new Exception('Time limit reached', 408, [
-                        'admin_index' => $admin_index,
+                        'admin_index'    => $admin_index,
                         'password_index' => $password_index,
                     ]);
+                    // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
                 }
 
                 if (wp_check_password($password, $admin->data->user_pass) === false) {

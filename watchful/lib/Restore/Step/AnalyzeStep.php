@@ -11,6 +11,7 @@ use Watchful\Helpers\Files;
 use Watchful\Helpers\Logger;
 use Watchful\Restore\DirectoryHelper;
 use Watchful\Restore\StepResponse;
+use Watchful\Helpers\PhpFilesystem;
 
 class AnalyzeStep implements StepInterface
 {
@@ -73,7 +74,7 @@ class AnalyzeStep implements StepInterface
 
         $csv_path = $restore_dir.DIRECTORY_SEPARATOR.Utils::BACKUP_FILES_LIST_FILE_NAME;
         $csv_extracted = @file_put_contents($csv_path, stream_get_contents($stream));
-        @fclose($stream);
+        @PhpFilesystem::fclose($stream);
 
         $this->logger->info('Extracting file list', [
             'backup_id' => $backup_id,
@@ -231,13 +232,17 @@ class AnalyzeStep implements StepInterface
         $wordpress_files = $this->get_wordpress_core_paths();
 
         foreach ($files as $file) {
+            $is_core = false;
             foreach ($wordpress_files as $wordpress_file) {
                 if (strpos($file, $wordpress_file) === 0) {
-                    $wordpress_core_files[] = $file;
-                } else {
-                    $user_files[] = $file;
+                    $is_core = true;
+                    break;
                 }
-                continue 2;
+            }
+            if ($is_core) {
+                $wordpress_core_files[] = $file;
+            } else {
+                $user_files[] = $file;
             }
         }
 

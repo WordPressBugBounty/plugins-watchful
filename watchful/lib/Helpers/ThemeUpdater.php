@@ -2,6 +2,11 @@
 
 namespace Watchful\Helpers;
 
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly.
+}
+
+
 use Theme_Upgrader;
 use Watchful\Exception;
 use Watchful\Helpers\Files as FilesHelper;
@@ -14,7 +19,7 @@ class ThemeUpdater
 
     public function __construct()
     {
-        $this->logger = new Logger('theme_updater');
+        $this->logger       = new Logger('theme_updater');
         $this->lock_factory = new LockFactory($this->logger);
     }
 
@@ -34,13 +39,14 @@ class ThemeUpdater
         $handle_shutdown = false,
         $use_lock = false,
         $new_version = null
-    ) {
-        require_once ABSPATH.'wp-admin/includes/theme.php';
-        require_once ABSPATH.'wp-admin/includes/file.php';
-        require_once ABSPATH.WPINC.'/theme.php';
-        require_once ABSPATH.'wp-admin/includes/class-wp-upgrader.php';
+    )
+    {
+        require_once ABSPATH . 'wp-admin/includes/theme.php';
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . WPINC . '/theme.php';
+        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
         if (!function_exists('WP_Filesystem')) {
-            require_once ABSPATH.'wp-admin/includes/file.php';
+            require_once ABSPATH . 'wp-admin/includes/file.php';
         }
 
         $this->logger->log('Theme update started', [
@@ -60,7 +66,7 @@ class ThemeUpdater
         if ($use_lock && !$lock) {
             $this->logger->log('Could not acquire lock', [
                 'lock_name' => PluginManager::LOCK_NAME,
-            ],                 Logger::WARNING);
+            ], Logger::WARNING);
             throw new Exception('Theme update is already in progress', 409);
         }
 
@@ -68,7 +74,7 @@ class ThemeUpdater
             $this->logger->log('parameter is missing. slug required or zip', [
                 'theme_slug' => $slug,
                 'zip' => $zip,
-            ],                 Logger::WARNING);
+            ], Logger::WARNING);
 
             if ($use_lock) {
                 $this->lock_factory->release(PluginManager::LOCK_NAME);
@@ -94,8 +100,8 @@ class ThemeUpdater
 
         // Force a theme update check.
         wp_update_themes();
-        $skin = new SkinThemeUpgrader();
-        $upgrader = new Theme_Upgrader($skin);
+        $skin                 = new SkinThemeUpgrader();
+        $upgrader             = new Theme_Upgrader($skin);
         $theme_backup_manager = new ThemeBackupManager();
 
         $min_php_version = $this->next_version_info($slug);
@@ -115,13 +121,14 @@ class ThemeUpdater
                 'theme_slug' => $slug,
                 'php_version' => phpversion(),
                 'min_php_version' => $min_php_version,
-            ],                 Logger::WARNING);
+            ], Logger::WARNING);
 
             if ($use_lock) {
                 $this->lock_factory->release(PluginManager::LOCK_NAME);
             }
 
-            throw new Exception("The minimum required PHP version for this update is ".$min_php_version, 500);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception("The minimum required PHP version for this update is " . $min_php_version, 500);
         }
 
         if ($enable_maintenance_mode) {
@@ -319,7 +326,8 @@ class ThemeUpdater
         $theme_backup_manager,
         $error_message = null,
         $error_code = 500
-    ) {
+    )
+    {
         $is_installed = $this->is_installed($slug);
 
         if ($handle_shutdown && !$is_installed) {
@@ -334,10 +342,12 @@ class ThemeUpdater
             'handle_shutdown' => $handle_shutdown,
         ]);
 
+        // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
         throw new Exception($error_message, (int)$error_code, [
             'theme' => $slug,
             'is_installed' => $this->is_installed($slug),
             'handle_shutdown' => $handle_shutdown,
         ]);
+        // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
     }
 }

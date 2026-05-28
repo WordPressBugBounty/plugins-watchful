@@ -2,6 +2,10 @@
 
 namespace Watchful\Helpers\BackupPlugins;
 
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly.
+}
+
 use Akeeba\Engine\Factory;
 use DateTime;
 use Exception;
@@ -25,13 +29,13 @@ class AkeebaBackupPlugin implements BackupPluginInterface
                 define('AKEEBASOLO', 1);
             }
 
-            if (!file_exists(WP_PLUGIN_DIR.'/akeebabackupwp/index.php')) {
+            if (!file_exists(WP_PLUGIN_DIR . '/akeebabackupwp/index.php')) {
                 return null;
             }
             if (!class_exists('Awf\\Autoloader\\Autoloader')) {
-                include_once WP_PLUGIN_DIR.'/akeebabackupwp/app/Awf/Autoloader/Autoloader.php';
+                include_once WP_PLUGIN_DIR . '/akeebabackupwp/app/Awf/Autoloader/Autoloader.php';
             }
-            include_once WP_PLUGIN_DIR.'/akeebabackupwp/helpers/integration.php';
+            include_once WP_PLUGIN_DIR . '/akeebabackupwp/helpers/integration.php';
             if (!defined('AKEEBASOLO')) {
                 define('AKEEBAENGINE', 1);
             }
@@ -44,10 +48,10 @@ class AkeebaBackupPlugin implements BackupPluginInterface
                 return null;
             }
             if (!class_exists('Akeeba\\Engine\\Factory')) {
-                include_once WP_PLUGIN_DIR.'/akeebabackupwp/app/Solo/engine/Factory.php';
+                include_once WP_PLUGIN_DIR . '/akeebabackupwp/app/Solo/engine/Factory.php';
             }
-            if (file_exists(WP_PLUGIN_DIR.'/akeebabackupwp/app/Solo/engine/secretkey.php')) {
-                include_once WP_PLUGIN_DIR.'/akeebabackupwp/app/Solo/engine/secretkey.php';
+            if (file_exists(WP_PLUGIN_DIR . '/akeebabackupwp/app/Solo/engine/secretkey.php')) {
+                include_once WP_PLUGIN_DIR . '/akeebabackupwp/app/Solo/engine/secretkey.php';
             }
             $secret_word = $akeebaBackupWordPressContainer->appConfig->get('options.frontend_secret_word');
             if (class_exists(Factory::class)) {
@@ -70,25 +74,33 @@ class AkeebaBackupPlugin implements BackupPluginInterface
         $cache_key = '_watchful_latest_backup_info';
 
         if ($profile_id !== null) {
-            $cache_key .= '_'.$profile_id;
+            $cache_key .= '_' . $profile_id;
         }
 
         $backup_info = wp_cache_get($cache_key);
 
-        $table_name = $wpdb->prefix.'ak_stats';
+        $table_name = $wpdb->prefix . 'ak_stats';
 
-        if ($profile_id !== null) {
-            $profile_id = $wpdb->_real_escape($profile_id);
-        }
-
-        if (!$wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+        if ($wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $table_name)) !== $table_name) {
             return false;
         }
 
         if (false === $backup_info) {
-            $backup_info = $wpdb->get_var(
-                "SELECT `backupend` FROM $table_name WHERE `status` = 'complete' AND `profile_id` = '$profile_id' ORDER BY `backupend` DESC LIMIT 0,1"
-            );
+            // phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $safe_table is $wpdb->prefix + hardcoded suffix, not user input.
+            $safe_table = esc_sql($table_name);
+            if ($profile_id !== null) {
+                $backup_info = $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT `backupend` FROM `{$safe_table}` WHERE `status` = 'complete' AND `profile_id` = %s ORDER BY `backupend` DESC LIMIT 0,1",
+                        $profile_id
+                    )
+                );
+            } else {
+                $backup_info = $wpdb->get_var(
+                    "SELECT `backupend` FROM `{$safe_table}` WHERE `status` = 'complete' ORDER BY `backupend` DESC LIMIT 0,1"
+                );
+            }
+            // phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
             wp_cache_set($cache_key, $backup_info);
         }

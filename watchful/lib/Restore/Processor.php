@@ -37,10 +37,11 @@ class Processor
         $step_id = $request['stepId'] ?? null;
         $data = $request['data'] ?? [];
 
+        // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- restore operation requires unlimited execution time; PHP limit would interrupt a long-running restore.
         ini_set('max_execution_time', 0);
 
         $this->logger->debug('Step restore', [
-            'id' => $backup_id,
+            'id'     => $backup_id,
             'stepId' => $step_id,
         ]);
 
@@ -94,7 +95,7 @@ class Processor
         }
 
         $this->logger->error('Invalid step', [
-            'stepId' => $step_id,
+            'stepId'  => $step_id,
             'request' => $request,
         ]);
 

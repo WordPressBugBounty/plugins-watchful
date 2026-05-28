@@ -109,10 +109,10 @@ class Themes implements BaseControllerInterface
      */
     public function update_theme(WP_REST_Request $request)
     {
-        require_once ABSPATH.'wp-admin/includes/theme.php';
-        require_once ABSPATH.'wp-admin/includes/file.php';
-        require_once ABSPATH.WPINC.'/theme.php';
-        require_once ABSPATH.'wp-admin/includes/class-wp-upgrader.php';
+        require_once ABSPATH . 'wp-admin/includes/theme.php';
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . WPINC . '/theme.php';
+        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 
         $params = $this->parse_install_update_request_params($request);
 
@@ -178,13 +178,13 @@ class Themes implements BaseControllerInterface
      */
     public function install_theme(WP_REST_Request $request)
     {
-        require_once ABSPATH.'wp-admin/includes/admin.php';
-        require_once ABSPATH.'wp-admin/includes/class-wp-upgrader.php';
-        require_once ABSPATH.'wp-admin/includes/theme.php';
-        require_once ABSPATH.WPINC.'/theme.php';
+        require_once ABSPATH . 'wp-admin/includes/admin.php';
+        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+        require_once ABSPATH . 'wp-admin/includes/theme.php';
+        require_once ABSPATH . WPINC . '/theme.php';
 
         $slug = $request->get_param('slug');
-        $zip = $request->get_param('zip');
+        $zip  = $request->get_param('zip');
 
         if (!$slug && !$zip) {
             throw new Exception('parameter is missing. slug or zip required', 400);
@@ -200,13 +200,14 @@ class Themes implements BaseControllerInterface
             $install_path = $this->download_link_from_zip($zip);
         }
 
-        $skin = new SkinThemeUpgrader();
+        $skin     = new SkinThemeUpgrader();
         $upgrader = new Theme_Upgrader($skin);
 
         $result = $upgrader->install($install_path);
 
         if (is_wp_error($result)) {
-            throw new Exception('installation of the theme failed : '.$result->get_error_message(), 400);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception('installation of the theme failed : ' . $result->get_error_message(), 400);
         }
 
         if (!$result) {
@@ -241,7 +242,8 @@ class Themes implements BaseControllerInterface
 
         // Usually because slug is wrong.
         if (is_wp_error($api)) {
-            throw new Exception('theme not found on wordpress.org : '.$api->get_error_message(), 400);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception('theme not found on wordpress.org : ' . $api->get_error_message(), 400);
         }
 
         return $api->download_link;
@@ -261,7 +263,7 @@ class Themes implements BaseControllerInterface
         $helper = new FilesHelper();
 
         $potential_slugs = $helper->get_zip_directories($zip);
-        $is_installed = false;
+        $is_installed    = false;
 
         foreach ($potential_slugs as $slug) {
             $is_installed = wp_get_theme($slug)->exists();
@@ -285,9 +287,9 @@ class Themes implements BaseControllerInterface
      */
     public function get_themes($plugin_data = array())
     {
-        require_once ABSPATH.'wp-admin/includes/theme.php';
-        require_once ABSPATH.WPINC.'/theme.php';
-        require_once ABSPATH.WPINC.'/update.php';
+        require_once ABSPATH . 'wp-admin/includes/theme.php';
+        require_once ABSPATH . WPINC . '/theme.php';
+        require_once ABSPATH . WPINC . '/update.php';
 
         // Get all themes.
         $themes = wp_get_themes();

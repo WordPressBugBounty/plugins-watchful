@@ -54,7 +54,7 @@ final class StateManager
     {
         global $wp_filesystem;
         if (empty($wp_filesystem)) {
-            require_once(ABSPATH.'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
             WP_Filesystem();
         }
 
@@ -71,9 +71,9 @@ final class StateManager
         );
 
         $this->logger->debug('Storing backup state', [
-            'backup_id' => $backup_id,
-            'state_path' => $state_path,
-            'result' => $result,
+            'backup_id'    => $backup_id,
+            'state_path'   => $state_path,
+            'result'       => $result,
             'backup_state' => $backup_state->jsonSerialize(),
         ]);
 
@@ -86,12 +86,12 @@ final class StateManager
     {
         $backup_dir = $this->utils->get_backup_directory($backup_id);
 
-        return $backup_dir.DIRECTORY_SEPARATOR.'state.json';
+        return $backup_dir . DIRECTORY_SEPARATOR . 'state.json';
     }
 
     public function get_previous_backup_file_list(string $backup_id): array
     {
-        $cache_key = 'watchful_previous_backup_file_list_'.$backup_id;
+        $cache_key = 'watchful_previous_backup_file_list_' . $backup_id;
         $cached_data = wp_cache_get($cache_key, 'watchful_backup');
 
         if ($cached_data !== false) {
@@ -100,7 +100,7 @@ final class StateManager
 
         global $wp_filesystem;
         if (empty($wp_filesystem)) {
-            require_once(ABSPATH.'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
             WP_Filesystem();
         }
 
@@ -111,16 +111,19 @@ final class StateManager
 
         $data = $wp_filesystem->get_contents($file_list_path);
         if ($data === false) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
             throw new RuntimeException('Failed to read previous backup file list');
         }
 
         $result = json_decode($data, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new RuntimeException('Invalid JSON in previous backup file list: '.json_last_error_msg());
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new RuntimeException('Invalid JSON in previous backup file list: ' . json_last_error_msg());
         }
 
         if (!is_array($result) || empty($result)) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
             throw new RuntimeException('Previous backup file list is not an array');
         }
 
@@ -133,14 +136,14 @@ final class StateManager
     {
         $backup_dir = $this->utils->get_backup_directory($backup_id);
 
-        return $backup_dir.DIRECTORY_SEPARATOR.'previous_file_list.json';
+        return $backup_dir . DIRECTORY_SEPARATOR . 'previous_file_list.json';
     }
 
     public function store_previous_backup_file_list(string $backup_id, array $file_list): void
     {
         global $wp_filesystem;
         if (empty($wp_filesystem)) {
-            require_once(ABSPATH.'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
             WP_Filesystem();
         }
 
@@ -163,7 +166,7 @@ final class StateManager
     {
         global $wp_filesystem;
         if (empty($wp_filesystem)) {
-            require_once(ABSPATH.'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
             WP_Filesystem();
         }
 

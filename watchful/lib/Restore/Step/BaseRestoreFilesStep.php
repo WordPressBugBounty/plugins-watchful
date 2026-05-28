@@ -29,6 +29,16 @@ abstract class BaseRestoreFilesStep implements StepInterface
         $this->directory_helper = new DirectoryHelper($file_helper, $logger);
     }
 
+    private function wp_filesystem(): \WP_Filesystem_Base
+    {
+        global $wp_filesystem;
+        if (!$wp_filesystem instanceof \WP_Filesystem_Base) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+        return $wp_filesystem;
+    }
+
     public function run(string $backup_id, array $data): StepResponse
     {
         $this->logger->debug('Restore ' . $this->get_log_name(), [
@@ -182,13 +192,13 @@ abstract class BaseRestoreFilesStep implements StepInterface
 
             $absolute_path = $root_dir.$relative_path;
             if (is_dir($absolute_path)) {
-                if (rmdir($absolute_path)) {
+                if ($this->wp_filesystem()->rmdir($absolute_path)) {
                     $stats['deleted_files']++;
                 } else {
                     $stats['errors'][] = "Failed to delete empty directory: {$absolute_path}";
                 }
             } else {
-                if (unlink($absolute_path)) {
+                if ($this->wp_filesystem()->delete($absolute_path)) {
                     $stats['deleted_files']++;
                 } else {
                     $stats['errors'][] = "Failed to delete file: {$absolute_path}";

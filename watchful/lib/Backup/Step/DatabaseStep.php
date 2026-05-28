@@ -6,8 +6,8 @@ use RuntimeException;
 use Watchful\Backup\Processor;
 use Watchful\Backup\Utils;
 use Watchful\Helpers\Logger;
+use Watchful\Helpers\PhpFilesystem;
 use Watchful\Model\BackupState;
-use WP_Filesystem_Direct;
 
 class DatabaseStep
 {
@@ -27,13 +27,6 @@ class DatabaseStep
     {
         global $wpdb;
 
-        /** @var $wp_filesystem WP_Filesystem_Direct */
-        global $wp_filesystem;
-        if (empty($wp_filesystem)) {
-            require_once(ABSPATH.'wp-admin/includes/file.php');
-            WP_Filesystem();
-        }
-
         $chunk_config = $this->utils->calculate_chunk_size('database');
         $chunk_size = $chunk_config['chunk_size'];
 
@@ -41,6 +34,7 @@ class DatabaseStep
             return;
         }
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- backup; all tables must be enumerated fresh.
         $tables = $wpdb->get_results(
             $wpdb->prepare(
                 "SHOW TABLES LIKE %s",
@@ -55,7 +49,9 @@ class DatabaseStep
         if (empty($backup_state->database->total_rows)) {
             $total_rows = 0;
             foreach ($tables as $table) {
-                $total_rows += $wpdb->get_var("SELECT COUNT(*) FROM $table[0]");
+                $safe_table = esc_sql($table[0]);
+                // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- backup count; table name from DB, sanitised with esc_sql.
+                $total_rows += $wpdb->get_var("SELECT COUNT(*) FROM `{$safe_table}`");
             }
             $backup_state->database->total_rows = $total_rows;
         }
@@ -84,14 +80,16 @@ class DatabaseStep
             throw new RuntimeException('Failed to write database chunk');
         }
 
+        // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- backup; table name from DB, sanitised with esc_sql.
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM $table_name LIMIT %d OFFSET %d",
+                'SELECT * FROM `' . esc_sql($table_name) . '` LIMIT %d OFFSET %d',
                 $chunk_size,
                 $current_offset
             ),
             ARRAY_A
         );
+        // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         if (empty($rows)) {
             $backup_state->database->current_table = $current_table_index + 1;
@@ -117,7 +115,8 @@ class DatabaseStep
     {
         global $wpdb;
 
-        $create_table = $wpdb->get_row("SHOW CREATE TABLE $table_name", ARRAY_N);
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- backup; SHOW CREATE TABLE requires identifier directly, sanitised with esc_sql.
+        $create_table = $wpdb->get_row('SHOW CREATE TABLE `' . esc_sql($table_name) . '`', ARRAY_N);
 
         $create_sql = $create_table[1];
         $table_name_without_prefix = str_replace($wpdb->prefix, Processor::DB_PREFIX_PLACEHOLDER, $table_name);
@@ -133,7 +132,7 @@ class DatabaseStep
 
         $drop_table = "DROP TABLE IF EXISTS `$table_name_without_prefix`;\n";
 
-        return file_put_contents(
+        return PhpFilesystem::file_put_contents(
                 $backup_file,
                 "-- Table: $table_name_without_prefix\n".
                 $drop_table.
@@ -155,7 +154,7 @@ class DatabaseStep
                 if ($value === null) {
                     $values[] = 'NULL';
                 } else {
-                    $values[] = "'".$wpdb->_real_escape($value)."'";
+                    $values[] = "'" . esc_sql($value) . "'";
                 }
             }
             $insert_statements[] = '('.implode(',', $values).')';
@@ -168,7 +167,7 @@ class DatabaseStep
             $sql = "INSERT INTO `$table_name_without_prefix` ($columns_str) VALUES\n";
             $sql .= implode(",\n", $insert_statements).";\n\n";
 
-            $write_result = file_put_contents($backup_file, $sql, FILE_APPEND);
+            $write_result = PhpFilesystem::file_put_contents($backup_file, $sql, FILE_APPEND);
 
             if ($write_result === false) {
                 throw new RuntimeException('Failed to write table data');

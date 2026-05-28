@@ -45,7 +45,7 @@ class Client
             'time' => $time,
         );
 
-        $baseUrl = !empty($_ENV['WATCHFUL_SSO_API_URL']) ? $_ENV['WATCHFUL_SSO_API_URL'] : self::SSO_API_URL;
+        $baseUrl = !empty($_ENV['WATCHFUL_SSO_API_URL']) ? esc_url_raw($_ENV['WATCHFUL_SSO_API_URL']) : self::SSO_API_URL;
         $url = $baseUrl.'?'.http_build_query($params);
 
         $response = $this->connection_helper->get_curl(array('url' => $url));

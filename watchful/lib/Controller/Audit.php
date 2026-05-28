@@ -74,8 +74,8 @@ class Audit implements BaseControllerInterface
      */
     public function audit(WP_REST_Request $request): WP_REST_Response
     {
-        $task = $request->get_param('task');
-        $start = $request->get_param('start') ? (int)$request->get_param('start') : 0;
+        $task       = $request->get_param('task');
+        $start      = $request->get_param('start') ? (int)$request->get_param('start') : 0;
         $class_name = $request->get_param('class_name');
 
         $this->logger->info('Audit request received', ['task' => $task]);
@@ -107,9 +107,10 @@ class Audit implements BaseControllerInterface
 
     public function auditConfiguration(int $start, ?string $class_name): stdClass
     {
+        $start_time = microtime(true);
         $this->init_audit();
 
-        $wp_audit = new stdClass();
+        $wp_audit       = new stdClass();
         $wp_audit->step = new stdClass();
 
         $tests = [
@@ -143,19 +144,19 @@ class Audit implements BaseControllerInterface
             $this->logger->info('Starting test', ['class_name' => $test_class]);
 
             /** @var AbstractAudit $test */
-            $test = new $test_class();
+            $test = new $test_class($start_time);
 
             $class_name = explode('\\', $test_class);
             $class_name = end($class_name);
 
             $wp_audit->step->class_name = $class_name;
-            $wp_audit->step->completed = false;
+            $wp_audit->step->completed  = false;
 
             if ($test->have_time() === false) {
                 break;
             }
 
-            $results = $test->run($start);
+            $results               = $test->run($start);
             $wp_audit->$class_name = $results;
 
             if ($results->error === ScannerResponse::TIMEOUT_ERROR_CODE) {
@@ -166,7 +167,7 @@ class Audit implements BaseControllerInterface
             $wp_audit->step->completed = true;
         }
 
-        $this->logger->info('Audit finished');
+        $this->logger->info('Audit finished', ['step' => $wp_audit->step]);
 
         return $wp_audit;
     }

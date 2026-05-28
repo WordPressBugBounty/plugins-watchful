@@ -18,6 +18,7 @@ final class LockFactory
         $lock_key = self::LOCK_PREFIX.$lock_name;
 
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL named lock; no WP abstraction exists and result must never be cached.
         $result = $wpdb->query($wpdb->prepare("SELECT GET_LOCK(%s, %d)", $lock_key, $timeout));
 
         if ($result) {
@@ -36,6 +37,7 @@ final class LockFactory
         $lock_key = self::LOCK_PREFIX.$lock_name;
 
         global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MySQL named lock; no WP abstraction exists and result must never be cached.
         $result = $wpdb->query($wpdb->prepare("SELECT RELEASE_LOCK(%s)", $lock_key));
 
         if ($result) {

@@ -51,11 +51,11 @@ class Settings
     { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName
         // This page will be under "Settings".
         add_options_page(
-            'Watchful settings',
-            'Watchful',
-            'manage_options',
-            'watchful-setting',
-            array($this, 'create_admin_page')
+                'Watchful settings',
+                'Watchful',
+                'manage_options',
+                'watchful-setting',
+                array($this, 'create_admin_page')
         );
     }
 
@@ -67,9 +67,8 @@ class Settings
         // Set class property.
         $this->options = get_option('watchfulSettings');
 
-        $activation_message = isset($_GET['activate']) ? htmlspecialchars(
-            $_GET['activate']
-        ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WordPress sets this parameter on its own plugin-activation redirect.
+        $activation_message = !empty($_GET['activate']);
         ?>
         <div class="wrap">
 
@@ -124,8 +123,8 @@ class Settings
         <p>
             <strong><?php
                 esc_html_e(
-                    'With this button you can add your website to the Watchful dashboard.',
-                    'watchful'
+                        'With this button you can add your website to the Watchful dashboard.',
+                        'watchful'
                 ); ?></strong>
         </p>
 
@@ -137,7 +136,7 @@ class Settings
             <input type="hidden" name="secret_word" value="<?php
             echo esc_attr($settings['watchfulSecretKey']); ?>">
             <input type="hidden" name="word_akeeba" value="<?php
-            echo AkeebaBackupPlugin::get_akeeba_secret_key() ?>">
+            echo esc_attr((string) AkeebaBackupPlugin::get_akeeba_secret_key()) ?>">
             <input type="hidden" name="option" value="com_jmonitoring">
             <input type="hidden" name="task" value="save">
             <input type="hidden" name="controller" value="editsite">
@@ -155,56 +154,56 @@ class Settings
     public function page_init()
     {
         register_setting(
-            'watchfulSettingsGroup',
-            'watchfulSettings', // Option name.
-            array($this, 'sanitize')
+                'watchfulSettingsGroup',
+                'watchfulSettings', // Option name.
+                array($this, 'sanitize')
         );
 
         add_settings_section(
-            'watchfulSection', // ID.
-            'Watchful settings', // Title.
-            array($this, 'print_section_info'), // Callback.
-            'watchful-setting' // Page.
+                'watchfulSection', // ID.
+                'Watchful settings', // Title.
+                array($this, 'print_section_info'), // Callback.
+                'watchful-setting' // Page.
         );
 
         add_settings_field(
-            'watchfulSecretKey', // ID.
-            'Watchful Secret key', // Title.
-            array($this, 'watchful_secret_key_callback'), // Callback.
-            'watchful-setting', // Page.
-            'watchfulSection' // Section.
+                'watchfulSecretKey', // ID.
+                'Watchful Secret key', // Title.
+                array($this, 'watchful_secret_key_callback'), // Callback.
+                'watchful-setting', // Page.
+                'watchfulSection' // Section.
         );
 
         add_settings_field(
-            'watchful_disable_timestamp',
-            'Disable Timestamp',
-            array($this, 'watchful_disable_timestamp_callback'),
-            'watchful-setting',
-            'watchfulSection'
+                'watchful_disable_timestamp',
+                'Disable Timestamp',
+                array($this, 'watchful_disable_timestamp_callback'),
+                'watchful-setting',
+                'watchfulSection'
         );
 
         add_settings_field(
-            'watchful_maintenance',
-            'Maintenance mode',
-            array($this, 'watchful_maintenance_callback'),
-            'watchful-setting',
-            'watchfulSection'
+                'watchful_maintenance',
+                'Maintenance mode',
+                array($this, 'watchful_maintenance_callback'),
+                'watchful-setting',
+                'watchfulSection'
         );
 
         add_settings_field(
-            'watchful_sso_authentication',
-            'SSO authentication',
-            array($this, 'watchful_sso_callback'),
-            'watchful-setting',
-            'watchfulSection'
+                'watchful_sso_authentication',
+                'SSO authentication',
+                array($this, 'watchful_sso_callback'),
+                'watchful-setting',
+                'watchfulSection'
         );
 
         add_settings_field(
-            'watchful_sso_authentication_adminonly',
-            'SSO authentication admin only',
-            array($this, 'watchful_sso_adminonly_callback'),
-            'watchful-setting',
-            'watchfulSection'
+                'watchful_sso_authentication_adminonly',
+                'SSO authentication admin only',
+                array($this, 'watchful_sso_adminonly_callback'),
+                'watchful-setting',
+                'watchfulSection'
         );
     }
 
@@ -244,8 +243,8 @@ class Settings
     public function watchful_secret_key_callback()
     {
         printf(
-            '<input type="text" id="watchfulSecretKey" name="watchfulSettings[watchfulSecretKey]" class="regular-text" value="%s" />',
-            isset($this->options['watchfulSecretKey']) ? esc_attr($this->options['watchfulSecretKey']) : ''
+                '<input type="text" id="watchfulSecretKey" name="watchfulSettings[watchfulSecretKey]" class="regular-text" value="%s" />',
+                isset($this->options['watchfulSecretKey']) ? esc_attr($this->options['watchfulSecretKey']) : ''
         );
     }
 
@@ -255,8 +254,8 @@ class Settings
     public function watchful_disable_timestamp_callback()
     {
         printf(
-            '<input type="checkbox" id="watchful_disable_timestamp" name="watchfulSettings[watchful_disable_timestamp]" %s />',
-            isset($this->options['watchful_disable_timestamp']) && 1 === (int)$this->options['watchful_disable_timestamp'] ? 'checked' : ''
+                '<input type="checkbox" id="watchful_disable_timestamp" name="watchfulSettings[watchful_disable_timestamp]" %s />',
+                isset($this->options['watchful_disable_timestamp']) && 1 === (int)$this->options['watchful_disable_timestamp'] ? 'checked' : ''
         );
     }
 
@@ -266,8 +265,8 @@ class Settings
     public function watchful_maintenance_callback()
     {
         printf(
-            '<input type="checkbox" id="watchful_maintenance" name="watchfulSettings[watchful_maintenance]" %s />',
-            isset($this->options['watchful_maintenance']) && 1 === (int)$this->options['watchful_maintenance'] ? 'checked' : ''
+                '<input type="checkbox" id="watchful_maintenance" name="watchfulSettings[watchful_maintenance]" %s />',
+                isset($this->options['watchful_maintenance']) && 1 === (int)$this->options['watchful_maintenance'] ? 'checked' : ''
         );
     }
 
@@ -277,8 +276,8 @@ class Settings
     public function watchful_sso_callback()
     {
         printf(
-            '<input type="checkbox" id="watchful_sso_authentication" name="watchfulSettings[watchful_sso_authentication]" %s />',
-            isset($this->options['watchful_sso_authentication']) && 1 === (int)$this->options['watchful_sso_authentication'] ? 'checked' : ''
+                '<input type="checkbox" id="watchful_sso_authentication" name="watchfulSettings[watchful_sso_authentication]" %s />',
+                isset($this->options['watchful_sso_authentication']) && 1 === (int)$this->options['watchful_sso_authentication'] ? 'checked' : ''
         );
     }
 
@@ -288,8 +287,8 @@ class Settings
     public function watchful_sso_adminonly_callback()
     {
         printf(
-            '<input type="checkbox" id="watchful_sso_authentication_adminonly" name="watchfulSettings[watchful_sso_authentication_adminonly]" %s />',
-            isset($this->options['watchful_sso_authentication_adminonly']) && 1 === (int)$this->options['watchful_sso_authentication_adminonly'] ? 'checked' : ''
+                '<input type="checkbox" id="watchful_sso_authentication_adminonly" name="watchfulSettings[watchful_sso_authentication_adminonly]" %s />',
+                isset($this->options['watchful_sso_authentication_adminonly']) && 1 === (int)$this->options['watchful_sso_authentication_adminonly'] ? 'checked' : ''
         );
     }
 }

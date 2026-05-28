@@ -18,7 +18,7 @@ class CleanupStep
 
     public function __construct(Utils $utils, Logger $logger)
     {
-        $this->utils = $utils;
+        $this->utils  = $utils;
         $this->logger = $logger;
     }
 
@@ -27,7 +27,7 @@ class CleanupStep
         /** @var $wp_filesystem WP_Filesystem_Direct */
         global $wp_filesystem;
         if (empty($wp_filesystem)) {
-            require_once(ABSPATH.'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
             WP_Filesystem();
         }
 
@@ -44,7 +44,8 @@ class CleanupStep
         $result = $wp_filesystem->delete($backup_dir, true);
 
         if (!$result) {
-            throw new RuntimeException('Failed to delete backup directory: '.$backup_dir);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new RuntimeException('Failed to delete backup directory: ' . $backup_dir);
         }
 
         $backup_state->cleanup->completed = true;

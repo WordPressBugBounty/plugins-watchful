@@ -2,6 +2,11 @@
 
 namespace Watchful\Audit\Tests;
 
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly.
+}
+
+
 use stdClass;
 use Watchful\Audit\AbstractAudit;
 use Watchful\Audit\Files\RecursiveListing;
@@ -11,18 +16,18 @@ class HasInstallOnSubdirectory extends AbstractAudit
     public function run(?int $start = 0): stdClass
     {
         $recursive_listing = new RecursiveListing();
-        $structure = $recursive_listing->get_structure(ABSPATH);
+        $structure         = $recursive_listing->get_structure(ABSPATH);
 
         $elements = $structure->files;
-        $paths = [];
+        $paths    = [];
 
         $escaped_base_path = preg_replace(['#\/#', '#\.#'], ['\/', '\.'], ABSPATH);
-        $pattern = '#^'.$escaped_base_path.'([a-z0-9_\-\.\s]*\/){1,2}wp-config\.php$#i';
+        $pattern           = '#^' . $escaped_base_path . '([a-z0-9_\-\.\s]*\/){1,2}wp-config\.php$#i';
 
         foreach ($elements as $element) {
             if (preg_match($pattern, $element) && $this->is_a_wp_config_file($element)) {
                 $relative_path = str_replace(ABSPATH, '', $element);
-                $paths[] = preg_replace('#wp-config.php$#', '', $relative_path);
+                $paths[]       = preg_replace('#wp-config.php$#', '', $relative_path);
             }
         }
 

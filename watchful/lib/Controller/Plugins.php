@@ -132,7 +132,7 @@ class Plugins implements BaseControllerInterface
      */
     public function activate_plugin(WP_REST_Request $request)
     {
-        require_once ABSPATH.'wp-admin/includes/plugin.php';
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
         $plugin_path = $this->plugin_manager->get_plugin_path($request->get_param('slug'));
 
@@ -143,7 +143,8 @@ class Plugins implements BaseControllerInterface
         }
 
         if (!empty($result) && is_wp_error($result)) {
-            throw new Exception('plugin state could not be changed : '.$result->get_error_message(), 400);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception('plugin state could not be changed : ' . $result->get_error_message(), 400);
         }
 
         return new WP_REST_Response(true);

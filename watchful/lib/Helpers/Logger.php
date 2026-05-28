@@ -7,16 +7,16 @@ use WP_Filesystem_Base;
 
 final class Logger
 {
-    const DEBUG = 100;
-    const INFO = 200;
+    public const DEBUG = 100;
+    public const INFO = 200;
     /**
      * Exceptional occurrences that are not errors
      *
      * Examples: Use of deprecated APIs, poor use of an API,
      * undesirable things that are not necessarily wrong.
      */
-    const WARNING = 300;
-    const ERROR = 400;
+    public const WARNING = 300;
+    public const ERROR = 400;
 
     /** @var string */
     private $log_dir;
@@ -34,9 +34,9 @@ final class Logger
     public function __construct(?string $channel = null)
     {
         $this->log_dir = WATCHFUL_PLUGIN_CONTENT_DIR;
-        $this->log_file = $this->log_dir.DIRECTORY_SEPARATOR.'log.php';
+        $this->log_file = $this->log_dir . DIRECTORY_SEPARATOR . 'log.php';
 
-        require_once(ABSPATH.'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
         WP_Filesystem();
         global $wp_filesystem;
         $this->filesystem = $wp_filesystem;
@@ -161,15 +161,15 @@ final class Logger
             $log_entry = [
                 'message' => $message,
                 'context' => $context,
-                'level' => $level,
-                'ts' => time(),
+                'level'   => $level,
+                'ts'      => time(),
             ];
 
             if (!empty($this->channel)) {
                 $log_entry['channel'] = $this->channel;
             }
 
-            $encoded_entry = wp_json_encode($log_entry)."\n";
+            $encoded_entry = wp_json_encode($log_entry) . "\n";
 
             return @file_put_contents($this->log_file, $encoded_entry, FILE_APPEND | LOCK_EX);
         } catch (Exception $th) {
@@ -192,7 +192,7 @@ final class Logger
             return;
         }
 
-        $backup_file = str_replace('.php', '.'.current_time('Y-m-d-H-i-s').'.php', $this->log_file);
+        $backup_file = str_replace('.php', '.' . current_time('Y-m-d-H-i-s') . '.php', $this->log_file);
         $this->filesystem->move($this->log_file, $backup_file);
         $this->initialize_log_file();
         $this->cleanup_old_logs();
@@ -216,7 +216,7 @@ final class Logger
             $files_to_delete = array_slice($backup_files, 0, count($backup_files) - $this->max_backup_files, true);
 
             foreach ($files_to_delete as $file => $time) {
-                $this->filesystem->delete($log_path.'/'.$file);
+                $this->filesystem->delete($log_path . '/' . $file);
             }
         }
     }

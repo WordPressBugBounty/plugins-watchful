@@ -2,6 +2,11 @@
 
 namespace Watchful\Helpers;
 
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly.
+}
+
+
 use Plugin_Upgrader;
 use stdClass;
 use Watchful\Exception;
@@ -36,18 +41,18 @@ class PluginManager
         $handle_shutdown = false,
         $use_lock = false
     ) {
-        include_once ABSPATH.'wp-admin/includes/admin.php';
-        require_once ABSPATH.'wp-admin/includes/plugin.php';
-        require_once ABSPATH.'wp-admin/includes/class-wp-upgrader.php';
+        include_once ABSPATH . 'wp-admin/includes/admin.php';
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
         if (!function_exists('WP_Filesystem')) {
-            require_once ABSPATH.'wp-admin/includes/file.php';
+            require_once ABSPATH . 'wp-admin/includes/file.php';
         }
 
         $this->logger->log('Installing plugin', [
-            'slug' => $slug,
-            'zip' => $zip,
+            'slug'                    => $slug,
+            'zip'                     => $zip,
             'enable_maintenance_mode' => $enable_maintenance_mode,
-            'handle_shutdown' => $handle_shutdown,
+            'handle_shutdown'         => $handle_shutdown,
         ]);
 
         $lock = false;
@@ -64,8 +69,8 @@ class PluginManager
         if (!$slug && !$zip) {
             $this->logger->log('parameter is missing. slug or zip required', [
                 'slug' => $slug,
-                'zip' => $zip,
-            ],                 Logger::WARNING);
+                'zip'  => $zip,
+            ], Logger::WARNING);
 
             if ($use_lock) {
                 $this->lock_factory->release(self::LOCK_NAME);
@@ -122,13 +127,11 @@ class PluginManager
         if (empty($install_path)) {
             $this->logger->log('Could not get install path', [
                 'slug' => $slug,
-                'zip' => $zip,
-            ],                 Logger::ERROR);
+                'zip'  => $zip,
+            ], Logger::ERROR);
 
-            throw new Exception('Could not get install path', 500, [
-                'slug' => $slug,
-                'zip' => $zip,
-            ]);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception('Could not get install path', 500, ['slug' => $slug, 'zip' => $zip]);
         }
 
         $skin = new SkinPluginUpgrader();
@@ -154,17 +157,18 @@ class PluginManager
             }
         } catch (\Exception $e) {
             $this->logger->log('Installation failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'slug' => $slug,
-                'zip' => $zip,
+                'error'        => $e->getMessage(),
+                'trace'        => $e->getTraceAsString(),
+                'slug'         => $slug,
+                'zip'          => $zip,
                 'install_path' => $install_path,
-            ],                 Logger::ERROR);
+            ], Logger::ERROR);
 
             if ($enable_maintenance_mode) {
                 $upgrader->maintenance_mode();
             }
 
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
             throw new Exception($e->getMessage(), 500);
         } finally {
             if ($use_lock) {
@@ -174,51 +178,55 @@ class PluginManager
 
         if (is_wp_error($result)) {
             $this->logger->log('Got WP error during installation', [
-                'error' => $result->get_error_message(),
-                'data' => $skin->error->get_all_error_data(),
-                'slug' => $slug,
-                'zip' => $zip,
+                'error'        => $result->get_error_message(),
+                'data'         => $skin->error->get_all_error_data(),
+                'slug'         => $slug,
+                'zip'          => $zip,
                 'install_path' => $install_path,
-            ],                 Logger::ERROR);
+            ], Logger::ERROR);
 
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
             throw new Exception('Installation of the plugin failed', 400, [
-                'error' => $result->get_error_message(),
-                'slug' => $slug,
-                'zip' => $zip,
+                'error'        => $result->get_error_message(),
+                'slug'         => $slug,
+                'zip'          => $zip,
                 'install_path' => $install_path,
             ]);
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         if (is_wp_error($skin->error)) {
             $this->logger->log('Got WP error during installation', [
-                'error' => $skin->error->get_error_message(),
-                'data' => $skin->error->get_all_error_data(),
-                'slug' => $slug,
-                'zip' => $zip,
+                'error'        => $skin->error->get_error_message(),
+                'data'         => $skin->error->get_all_error_data(),
+                'slug'         => $slug,
+                'zip'          => $zip,
                 'install_path' => $install_path,
-            ],                 Logger::ERROR);
+            ], Logger::ERROR);
 
+            // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
             throw new Exception('Installation of the plugin failed', 400, [
-                'error' => $skin->error->get_error_message(),
-                'slug' => $slug,
-                'zip' => $zip,
+                'error'        => $skin->error->get_error_message(),
+                'slug'         => $slug,
+                'zip'          => $zip,
                 'install_path' => $install_path,
             ]);
+            // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
         }
 
         if (false === $result) {
             $this->logger->log('Installation failed', [
-                'slug' => $slug,
-                'zip' => $zip,
+                'slug'         => $slug,
+                'zip'          => $zip,
                 'install_path' => $install_path,
-            ],                 Logger::ERROR);
+            ], Logger::ERROR);
 
             throw new Exception('unknown error', 500);
         }
 
         $this->logger->log('Plugin installed', [
-            'slug' => $slug,
-            'zip' => $zip,
+            'slug'         => $slug,
+            'zip'          => $zip,
             'install_path' => $install_path,
         ]);
 
@@ -233,15 +241,17 @@ class PluginManager
         }
 
         $this->logger->log('Plugin activation failed', [
-            'slug' => $slug,
+            'slug'  => $slug,
             'error' => $activation->get_error_messages(),
-            'data' => $activation->get_all_error_data(),
-        ],                 Logger::ERROR);
+            'data'  => $activation->get_all_error_data(),
+        ], Logger::ERROR);
 
+        // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
         throw new Exception('Plugin activation failed', 400, [
-            'slug' => $slug,
+            'slug'  => $slug,
             'error' => $activation->get_error_message(),
         ]);
+        // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
     }
 
     /**
@@ -316,18 +326,18 @@ class PluginManager
         $use_lock = false
     ) {
         $this->logger->log('Received request to update plugin', [
-            'plugin_path' => $plugin_path,
-            'zip' => $zip,
+            'plugin_path'             => $plugin_path,
+            'zip'                     => $zip,
             'enable_maintenance_mode' => $enable_maintenance_mode,
-            'handle_shutdown' => $handle_shutdown,
+            'handle_shutdown'         => $handle_shutdown,
         ]);
 
-        include_once ABSPATH.'wp-admin/includes/admin.php';
-        require_once ABSPATH.'wp-admin/includes/plugin.php';
-        include_once ABSPATH.WPINC.'/update.php';
-        require_once ABSPATH.'wp-admin/includes/class-wp-upgrader.php';
+        include_once ABSPATH . 'wp-admin/includes/admin.php';
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        include_once ABSPATH . WPINC . '/update.php';
+        require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
         if (!function_exists('WP_Filesystem')) {
-            require_once ABSPATH.'wp-admin/includes/file.php';
+            require_once ABSPATH . 'wp-admin/includes/file.php';
         }
 
         $lock = false;
@@ -387,14 +397,15 @@ class PluginManager
         if ($min_php_version && version_compare(phpversion(), $min_php_version) < 0) {
             $this->logger->log('PHP version is too low for this update', [
                 'required_version' => $min_php_version,
-                'current_version' => phpversion(),
-            ],                 Logger::ERROR);
+                'current_version'  => phpversion(),
+            ], Logger::ERROR);
 
             if ($use_lock) {
                 $this->lock_factory->release(self::LOCK_NAME);
             }
 
-            throw new Exception("The minimum required PHP version for this update is ".$min_php_version, 500);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception("The minimum required PHP version for this update is " . $min_php_version, 500);
         }
 
         if ($enable_maintenance_mode) {
@@ -407,7 +418,7 @@ class PluginManager
             $result = $plugin_backup_manager->make_backup($plugin_path);
             $this->logger->log('Backup created', [
                 'plugin_path' => $plugin_path,
-                'result' => $result,
+                'result'      => $result,
             ]);
         }
 
@@ -426,10 +437,10 @@ class PluginManager
                 $upgrader->maintenance_mode();
             }
             $this->logger->log('Update failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+                'error'       => $e->getMessage(),
+                'trace'       => $e->getTraceAsString(),
                 'plugin_path' => $plugin_path,
-            ],                 Logger::ERROR);
+            ], Logger::ERROR);
             $this->handle_update_error(
                 $handle_shutdown,
                 $plugin_path,
@@ -445,9 +456,9 @@ class PluginManager
         if (is_wp_error($result)) {
             $this->logger->log('Got WP error during update', [
                 'plugin_path' => $plugin_path,
-                'error' => $result->get_error_messages(),
-                'data' => $result->get_all_error_data(),
-            ],                 Logger::ERROR);
+                'error'       => $result->get_error_messages(),
+                'data'        => $result->get_all_error_data(),
+            ], Logger::ERROR);
             $this->handle_update_error(
                 $handle_shutdown,
                 $plugin_path,
@@ -460,9 +471,9 @@ class PluginManager
         if (is_wp_error($skin->error)) {
             $this->logger->log('Got WP error during update', [
                 'plugin_path' => $plugin_path,
-                'error' => $skin->error->get_error_messages(),
-                'data' => $skin->error->get_all_error_data(),
-            ],                 Logger::ERROR);
+                'error'       => $skin->error->get_error_messages(),
+                'data'        => $skin->error->get_all_error_data(),
+            ], Logger::ERROR);
             $this->handle_update_error(
                 $handle_shutdown,
                 $plugin_path,
@@ -475,7 +486,7 @@ class PluginManager
         if (false === $result || is_null($result)) {
             $this->logger->log('Update failed with unknown error', [
                 'plugin_path' => $plugin_path,
-            ],                 Logger::ERROR);
+            ], Logger::ERROR);
             $this->handle_update_error($handle_shutdown, $plugin_path, $plugin_backup_manager, 'unknown error');
         }
 
@@ -489,12 +500,12 @@ class PluginManager
         $plugin_backup_manager->cleanup();
         $this->logger->log('Plugin update completed successfully', [
             'plugin_path' => $plugin_path,
-            'version' => get_plugin_data(WP_PLUGIN_DIR.'/'.$plugin_path)['Version'],
+            'version'     => get_plugin_data(WP_PLUGIN_DIR . '/' . $plugin_path)['Version'],
         ]);
 
         return [
-            'status' => 'success',
-            'version' => get_plugin_data(WP_PLUGIN_DIR.'/'.$plugin_path)['Version'],
+            'status'  => 'success',
+            'version' => get_plugin_data(WP_PLUGIN_DIR . '/' . $plugin_path)['Version'],
         ];
     }
 
@@ -547,26 +558,29 @@ class PluginManager
             add_action('shutdown', [$plugin_backup_manager, 'restore_backup'], 0, false);
         }
 
+        // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
         throw new Exception($error_message, (int)$error_code, [
-            'plugin' => $slug,
-            'is_installed' => $this->is_installed($slug),
+            'plugin'          => $slug,
+            'is_installed'    => $this->is_installed($slug),
             'handle_shutdown' => $handle_shutdown,
         ]);
+        // phpcs:enable WordPress.Security.EscapeOutput.ExceptionNotEscaped
     }
 
     private function download_link_from_slug($slug)
     {
-        require_once ABSPATH.'wp-admin/includes/plugin-install.php';
+        require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
 
         $api_args = array(
-            'slug' => $slug,
+            'slug'   => $slug,
             'fields' => array('sections' => false),
         );
         $api = plugins_api('plugin_information', $api_args);
 
         // Usually because slug is wrong.
         if (is_wp_error($api)) {
-            throw new Exception('plugin not found on wordpress.org : '.$api->get_error_message(), 400);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new Exception('plugin not found on wordpress.org : ' . $api->get_error_message(), 400);
         }
 
         return $api->download_link;
@@ -603,8 +617,8 @@ class PluginManager
      */
     public function get_all_plugins($plugin_data = array())
     {
-        require_once ABSPATH.'wp-admin/includes/plugin.php';
-        require_once ABSPATH.WPINC.'/update.php';
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+        require_once ABSPATH . WPINC . '/update.php';
 
         if (!is_array($plugin_data)) {
             $plugin_data = (array)$plugin_data;
@@ -687,7 +701,10 @@ class PluginManager
             $new_mapping['authorurl'] = $plugin['PluginURI'];
             $new_mapping['version'] = $plugin['Version'];
             $new_mapping['updateVersion'] = $plugin['latest_version'];
-            $new_mapping['vUpdate'] = $this->is_plugin_update_available($plugin['Version'], $plugin['latest_version']);
+            $new_mapping['vUpdate'] = $this->is_plugin_update_available(
+                $plugin['Version'],
+                $plugin['latest_version']
+            );
             $new_mapping['type'] = 'plugin';
             $new_mapping['network'] = $plugin['Network'];
             $new_mapping['creationdate'] = null;
@@ -723,8 +740,8 @@ class PluginManager
     private function is_semantic_version($version)
     {
         return (bool)preg_match(
-            '/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)'.
-            '(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?'.
+            '/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)' .
+            '(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?' .
             '(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/',
             $version
         );

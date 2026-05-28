@@ -53,8 +53,11 @@ class Authenticator
             return $user;
         }
 
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- server-configured boolean env flag; not user input.
+        $force_auth = isset($_ENV['WATCHFUL_SSO_FORCE_AUTHENTICATION']) && $_ENV['WATCHFUL_SSO_FORCE_AUTHENTICATION'];
+
         if (
-            (!isset($_ENV['WATCHFUL_SSO_FORCE_AUTHENTICATION']) || !$_ENV['WATCHFUL_SSO_FORCE_AUTHENTICATION']) &&
+            !$force_auth &&
             get_option('watchful_last_login_time') &&
             get_option('watchful_last_login_time') > time() - self::MAX_TIME_BETWEEN_REQUESTS &&
             get_option('watchful_last_login_error_counter', 0) > self::MAX_NUMBER_OF_FAILED_REQUESTS

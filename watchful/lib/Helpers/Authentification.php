@@ -12,6 +12,11 @@
 
 namespace Watchful\Helpers;
 
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly.
+}
+
+
 use Watchful\Exception;
 
 /**
@@ -58,9 +63,9 @@ class Authentification
      */
     public function __construct($private_key, $verify_key, $time_stamp, $public_content)
     {
-        $this->private_key = $private_key;
-        $this->verify_key = $verify_key;
-        $this->time_stamp = $time_stamp;
+        $this->private_key    = $private_key;
+        $this->verify_key     = $verify_key;
+        $this->time_stamp     = $time_stamp;
         $this->public_content = $public_content;
     }
 
@@ -116,9 +121,9 @@ class Authentification
      */
     private function check_key()
     {
-        $key = $this->verify_key;
+        $key         = $this->verify_key;
         $control_key = hash_hmac('sha256', $this->public_content, $this->private_key);
-        $status = 0;
+        $status      = 0;
         if (!is_string($key) || !is_string($control_key)) {
             return false;
         }

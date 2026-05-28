@@ -6,6 +6,7 @@ use RuntimeException;
 use Watchful\Helpers\Files;
 use WP_Filesystem_Direct;
 use ZipArchive;
+use Watchful\Helpers\PhpFilesystem;
 
 final class Utils
 {
@@ -60,14 +61,15 @@ final class Utils
         /** @var $wp_filesystem WP_Filesystem_Direct */
         global $wp_filesystem;
         if (empty($wp_filesystem)) {
-            require_once(ABSPATH.'wp-admin/includes/file.php');
+            require_once(ABSPATH . 'wp-admin/includes/file.php');
             WP_Filesystem();
         }
 
-        $path = $this->get_backup_directory($backup_id).DIRECTORY_SEPARATOR.$file_name;
+        $path = $this->get_backup_directory($backup_id) . DIRECTORY_SEPARATOR . $file_name;
 
         if ($create && !$wp_filesystem->exists($path) && !$wp_filesystem->put_contents($path, '')) {
-            throw new RuntimeException('Failed to create backup file: '.$file_name);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new RuntimeException('Failed to create backup file: ' . $file_name);
         }
 
         return $path;
@@ -75,7 +77,7 @@ final class Utils
 
     public function get_backup_directory(string $backup_id): string
     {
-        $backup_dir = $this->get_backup_root_directory().DIRECTORY_SEPARATOR.$backup_id;
+        $backup_dir = $this->get_backup_root_directory() . DIRECTORY_SEPARATOR . $backup_id;
 
         $result = true;
         if (!file_exists($backup_dir)) {
@@ -94,13 +96,13 @@ final class Utils
     public function get_backup_root_directory(): string
     {
         $main_dir = WATCHFUL_PLUGIN_CONTENT_DIR;
-        $result = true;
+        $result   = true;
         if (!file_exists($main_dir)) {
             $result = wp_mkdir_p($main_dir);
         }
 
         if ($result === false) {
-            $main_dir = WP_CONTENT_DIR.DIRECTORY_SEPARATOR.'watchful-backup';
+            $main_dir = WP_CONTENT_DIR . DIRECTORY_SEPARATOR . 'watchful-backup';
         }
 
         if (!file_exists($main_dir)) {
@@ -111,7 +113,7 @@ final class Utils
             return '';
         }
 
-        $backup_dir = $main_dir.'/backups';
+        $backup_dir = $main_dir . '/backups';
 
         if (!file_exists($backup_dir)) {
             wp_mkdir_p($backup_dir);
@@ -124,12 +126,12 @@ final class Utils
 
     public function get_database_backup_file_path(string $backup_id, string $table_name): string
     {
-        return $this->get_database_backup_dir_path($backup_id).DIRECTORY_SEPARATOR.$table_name.'.sql';
+        return $this->get_database_backup_dir_path($backup_id) . DIRECTORY_SEPARATOR . $table_name . '.sql';
     }
 
     public function get_database_backup_dir_path(string $backup_id): string
     {
-        $path = $this->get_backup_directory($backup_id).DIRECTORY_SEPARATOR.'database';
+        $path = $this->get_backup_directory($backup_id) . DIRECTORY_SEPARATOR . 'database';
 
         if (file_exists($path)) {
             return $path;
@@ -167,11 +169,11 @@ final class Utils
 
     public function calculate_chunk_size(string $operation = 'default'): array
     {
-        $memory_limit = $this->parse_size(ini_get('memory_limit'));
-        $memory_usage = memory_get_usage(true);
-        $available_memory = $memory_limit - $memory_usage;
+        $memory_limit       = $this->parse_size(ini_get('memory_limit'));
+        $memory_usage       = memory_get_usage(true);
+        $available_memory   = $memory_limit - $memory_usage;
         $max_execution_time = ini_get('max_execution_time');
-        $start_time = microtime(true);
+        $start_time         = microtime(true);
 
         $configs = [
             'database' => [
@@ -263,13 +265,15 @@ final class Utils
         $disabled_functions = explode(',', ini_get('disable_functions'));
         foreach ($required_functions as $function) {
             if (in_array($function, $disabled_functions)) {
-                throw new RuntimeException('Function '.$function.' is disabled');
+                // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+                throw new RuntimeException('Function ' . $function . ' is disabled');
             }
         }
 
         foreach ($required_extensions as $extension) {
             if (!extension_loaded($extension)) {
-                throw new RuntimeException('Extension '.$extension.' is not loaded');
+                // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+                throw new RuntimeException('Extension ' . $extension . ' is not loaded');
             }
         }
 
@@ -293,13 +297,15 @@ final class Utils
     public function parse_csv(string $csv_file_path): array
     {
         if (!file_exists($csv_file_path)) {
-            throw new RuntimeException('CSV file not found: '.$csv_file_path);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new RuntimeException('CSV file not found: ' . $csv_file_path);
         }
 
-        $handle = fopen($csv_file_path, 'r');
+        $handle = PhpFilesystem::fopen($csv_file_path, 'r');
 
         if ($handle === false) {
-            throw new RuntimeException('Failed to open CSV file: '.$csv_file_path);
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
+            throw new RuntimeException('Failed to open CSV file: ' . $csv_file_path);
         }
 
         fgetcsv($handle);
@@ -320,21 +326,21 @@ final class Utils
             array_shift($data);
         }
 
-        fclose($handle);
+        PhpFilesystem::fclose($handle);
 
         return $data;
     }
 
     public function write_csv_header(string $csv_file_path, array $header): bool
     {
-        $headerString = implode(',', array_map([$this, 'escape_csv_field'], $header))."\n";
+        $headerString = implode(',', array_map([$this, 'escape_csv_field'], $header)) . "\n";
 
         return file_put_contents($csv_file_path, $headerString) !== false;
     }
 
     public function append_row_to_csv(string $csv_file_path, array $data): bool
     {
-        $csv_line = implode(',', array_map([$this, 'escape_csv_field'], $data))."\n";
+        $csv_line = implode(',', array_map([$this, 'escape_csv_field'], $data)) . "\n";
 
         return file_put_contents($csv_file_path, $csv_line, FILE_APPEND) !== false;
     }
@@ -342,7 +348,7 @@ final class Utils
     private function escape_csv_field(string $field): string
     {
         if (strpos($field, ',') !== false || strpos($field, '"') !== false || strpos($field, "\n") !== false) {
-            return '"'.str_replace('"', '""', $field).'"';
+            return '"' . str_replace('"', '""', $field) . '"';
         }
 
         return $field;

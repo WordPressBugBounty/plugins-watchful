@@ -12,6 +12,10 @@
 
 namespace Watchful;
 
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly.
+}
+
 /**
  * Main Watchful class.
  */
@@ -48,36 +52,9 @@ class Main
      */
     public function init()
     {
-        // Check to see if the page has been posted too.
-        add_action('wp', array($this, 'watchful_page_posted'));
-
         // Add Message after activation.
         add_action('admin_notices', array($this, 'watchful_admin_notice'));
         add_action('network_admin_notices', array($this, 'watchful_admin_notice'));
-    }
-
-    /**
-     * Checks to see if the page has been posted too.
-     *
-     * @since 0.1
-     */
-    public function watchful_page_posted()
-    {
-        $request_method = !empty($_SERVER['REQUEST_METHOD']) ? sanitize_text_field(
-            wp_unslash($_SERVER['REQUEST_METHOD'])
-        ) : '';
-        $current_page = !empty($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : ''; // WPCS: CSRF ok.
-
-        if ('POST' === strtoupper($request_method) && 'watchful-setting' === $current_page) {
-            $disable_timestamp = !empty($_POST['watchful_disable_timestamp']) ? 1 : 0; // WPCS: CSRF ok.
-            $maintenance = !empty($_POST['watchful_disable_timestamp']) ? 1 : 0; // WPCS: CSRF ok.
-
-            $settings = get_option('watchfulSettings');
-            $settings['watchful_disable_timestamp'] = $disable_timestamp;
-            $settings['watchful_maintenance'] = $maintenance;
-
-            update_option('watchfulSettings', $settings);
-        }
     }
 
     /**

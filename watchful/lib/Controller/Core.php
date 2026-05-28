@@ -25,6 +25,7 @@ use Watchful\Helpers\Authentification;
 use Watchful\Helpers\BackupPluginHelper;
 use Watchful\Skins\SkinCoreUpgrader;
 use WP_REST_Server;
+use Watchful\Helpers\PhpFilesystem;
 
 if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly.
@@ -86,6 +87,7 @@ class Core implements BaseControllerInterface
         $response = $core->upgrade_core();
 
         if (is_wp_error($response)) {
+            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.
             throw new Exception($response->get_error_code(), 500, $response->get_error_data());
         }
 
@@ -282,9 +284,9 @@ class Core implements BaseControllerInterface
 
             // If the file exists.
             if (file_exists($file)) {
-                $fp = fopen($file, 'r');
+                $fp = PhpFilesystem::fopen($file, 'r');
                 $fstat = fstat($fp);
-                fclose($fp);
+                PhpFilesystem::fclose($fp);
                 $checksum = md5_file($file);
             }
 
@@ -292,9 +294,9 @@ class Core implements BaseControllerInterface
             if ($checksum === 'NOT_FOUND' && $file === ABSPATH.'/wp-config.php') {
                 $file = ABSPATH.'/../wp-config.php';
                 if (file_exists($file)) {
-                    $fp = fopen($file, 'r');
+                    $fp = PhpFilesystem::fopen($file, 'r');
                     $fstat = fstat($fp);
-                    fclose($fp);
+                    PhpFilesystem::fclose($fp);
                     $checksum = md5_file($file);
                 }
             }

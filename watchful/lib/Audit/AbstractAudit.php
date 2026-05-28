@@ -14,7 +14,6 @@ namespace Watchful\Audit;
 
 use stdClass;
 use Watchful\Helpers\Logger;
-
 use function WP_Filesystem;
 
 if (!defined('ABSPATH')) {
@@ -26,7 +25,7 @@ abstract class AbstractAudit
     /**
      * @var int
      */
-    const _DEFAULT_TIMEEXECUTION_LIMIT = 10;
+    public const _DEFAULT_TIMEEXECUTION_LIMIT = 10;
 
     /**
      * List of passwords.
@@ -54,7 +53,7 @@ abstract class AbstractAudit
      */
     private $start_time;
 
-    public function __construct()
+    public function __construct(?float $start = null)
     {
         $this->response = new ScannerResponse();
 
@@ -62,7 +61,7 @@ abstract class AbstractAudit
 
         $this->load_passwords();
 
-        $this->start_time = microtime(true);
+        $this->start_time         = $start ?? microtime(true);
         $this->max_execution_time = $this->calculate_max_execution_time();
     }
 
@@ -71,10 +70,10 @@ abstract class AbstractAudit
      */
     private function load_passwords()
     {
-        require_once(ABSPATH.'wp-admin/includes/file.php');
+        require_once(ABSPATH . 'wp-admin/includes/file.php');
         WP_Filesystem();
         global $wp_filesystem;
-        $passwords = $wp_filesystem->get_contents(WATCHFUL_PLUGIN_DIR.'lib/Audit/Resources/weak_passwords.txt');
+        $passwords = $wp_filesystem->get_contents(WATCHFUL_PLUGIN_DIR . 'lib/Audit/Resources/weak_passwords.txt');
 
         if (!empty($passwords)) {
             $passwords = preg_split("/(\r\n|\n|\r)/", $passwords);
@@ -137,8 +136,6 @@ abstract class AbstractAudit
 
     /**
      * Calculate if we have 1 second left
-     *
-     * @return boolean
      */
     public function have_time(): bool
     {
