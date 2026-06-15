@@ -53,7 +53,7 @@ abstract class AbstractAudit
      */
     private $start_time;
 
-    public function __construct(?float $start = null)
+    public function __construct(?float $start = null, ?int $max_execution_time = null)
     {
         $this->response = new ScannerResponse();
 
@@ -62,7 +62,7 @@ abstract class AbstractAudit
         $this->load_passwords();
 
         $this->start_time         = $start ?? microtime(true);
-        $this->max_execution_time = $this->calculate_max_execution_time();
+        $this->max_execution_time = $this->calculate_max_execution_time($max_execution_time);
     }
 
     /**
@@ -81,14 +81,12 @@ abstract class AbstractAudit
         $this->passwords = $passwords;
     }
 
-    private function calculate_max_execution_time(): int
+    private function calculate_max_execution_time(?int $max_execution_time = null): int
     {
-        $max_execution_set_by_master = get_query_var('max_execution_time', 0);
+        if ($max_execution_time) {
+            $this->logger->debug('Max execution time set by master', ['time' => $max_execution_time]);
 
-        if ($max_execution_set_by_master) {
-            $this->logger->debug('Max execution time set by master', ['time' => $max_execution_set_by_master]);
-
-            return $max_execution_set_by_master;
+            return $max_execution_time;
         }
 
         $php_execution_time = (int)ini_get('max_execution_time');

@@ -82,6 +82,9 @@ The Forever Free account at Watchful will allow you to manage and perform mainte
 Watchful launched in 2012 and began supporting WordPress in 2017.
 
 == Changelog ==
+= v2.0.14 =
+* Fix an issue with the vulnerability scanner for specific hosting providers.
+
 = v2.0.13 =
 * Updated license to match readme.txt and plugin header.
 * Fixed tested up to version in readme.txt
@@ -99,39 +102,6 @@ Watchful launched in 2012 and began supporting WordPress in 2017.
 
 = v2.0.10 =
 * Improve security by hiding details from response and routes list
-
-= v2.0.9 =
-* Fix a bug that returned wrong file and folder permissions on Windows servers
-
-= v2.0.8 =
-* Fix timeout issues while performing a vulnerability scan
-
-= v2.0.7 =
-* Fix XCloner class instantiation logic
-
-= v2.0.6 =
-* Improve backup restoration
-* Fix XCloner compatibility
-
-= v2.0.5 =
-* Implement backup restoration
-
-= v2.0.4 =
-* Use the same lock when updating plugins and themes
-
-= v2.0.3 =
-* Add logs to backup processor class
-* ignore backup folders from other vendors
-
-= v2.0.2 =
-* Add a lock manager to prevent multiple update / install processes at the same time
-
-= v2.0.1 =
-* Filter DB tables to backup on WP related tables
-
-= v2.0.0 =
-* Change minimum PHP version to 7.2
-* Implement site backups
 
 [See changelog for all versions](https://plugins.svn.wordpress.org/watchful/trunk/changelog.txt).
 

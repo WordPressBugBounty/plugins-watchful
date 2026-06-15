@@ -74,27 +74,28 @@ class Audit implements BaseControllerInterface
      */
     public function audit(WP_REST_Request $request): WP_REST_Response
     {
-        $task       = $request->get_param('task');
-        $start      = $request->get_param('start') ? (int)$request->get_param('start') : 0;
-        $class_name = $request->get_param('class_name');
+        $task               = $request->get_param('task');
+        $start              = $request->get_param('start') ? (int)$request->get_param('start') : 0;
+        $class_name         = $request->get_param('class_name');
+        $max_execution_time = $request->get_param('max_execution_time') ? (int)$request->get_param('max_execution_time') : null;
 
         $this->logger->info('Audit request received', ['task' => $task]);
 
         switch ($task) {
             case 'auditConfiguration':
-                $result = $this->auditConfiguration($start, $class_name);
+                $result = $this->auditConfiguration($start, $class_name, $max_execution_time);
                 break;
             case 'auditMalwareScanner':
-                $result = $this->auditMalwareScanner($start);
+                $result = $this->auditMalwareScanner($start, $max_execution_time);
                 break;
             case 'auditFoldersPermissions':
-                $result = $this->auditFoldersPermissions($start);
+                $result = $this->auditFoldersPermissions($start, $max_execution_time);
                 break;
             case 'auditFilesPermissions':
-                $result = $this->auditFilesPermissions($start);
+                $result = $this->auditFilesPermissions($start, $max_execution_time);
                 break;
             case 'auditCoreIntegrity':
-                $result = $this->auditCoreIntegrity($start);
+                $result = $this->auditCoreIntegrity($start, $max_execution_time);
                 break;
             default:
                 throw new Exception('bad-task', 403);
@@ -105,7 +106,7 @@ class Audit implements BaseControllerInterface
         return new WP_REST_Response($result);
     }
 
-    public function auditConfiguration(int $start, ?string $class_name): stdClass
+    public function auditConfiguration(int $start, ?string $class_name, ?int $max_execution_time = null): stdClass
     {
         $start_time = microtime(true);
         $this->init_audit();
@@ -144,7 +145,7 @@ class Audit implements BaseControllerInterface
             $this->logger->info('Starting test', ['class_name' => $test_class]);
 
             /** @var AbstractAudit $test */
-            $test = new $test_class($start_time);
+            $test = new $test_class($start_time, $max_execution_time);
 
             $class_name = explode('\\', $test_class);
             $class_name = end($class_name);
@@ -187,23 +188,23 @@ class Audit implements BaseControllerInterface
     /**
      * @throws \Exception
      */
-    public function auditMalwareScanner(int $start): stdClass
+    public function auditMalwareScanner(int $start, ?int $max_execution_time = null): stdClass
     {
-        $scanner = new MalwareScanner();
+        $scanner = new MalwareScanner(null, $max_execution_time);
 
         return $scanner->run($start);
     }
 
-    public function auditFoldersPermissions(int $start): stdClass
+    public function auditFoldersPermissions(int $start, ?int $max_execution_time = null): stdClass
     {
-        $scanner = new FoldersPermissions();
+        $scanner = new FoldersPermissions(null, $max_execution_time);
 
         return $scanner->run($start);
     }
 
-    public function auditFilesPermissions(int $start): stdClass
+    public function auditFilesPermissions(int $start, ?int $max_execution_time = null): stdClass
     {
-        $scanner = new FilesPermissions();
+        $scanner = new FilesPermissions(null, $max_execution_time);
 
         return $scanner->run($start);
     }
@@ -211,9 +212,9 @@ class Audit implements BaseControllerInterface
     /**
      * @throws \Exception
      */
-    public function auditCoreIntegrity(int $start): stdClass
+    public function auditCoreIntegrity(int $start, ?int $max_execution_time = null): stdClass
     {
-        $model = new Integrity();
+        $model = new Integrity(null, $max_execution_time);
 
         return $model->run($start);
     }

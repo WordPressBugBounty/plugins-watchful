@@ -171,7 +171,9 @@ final class Logger
 
             $encoded_entry = wp_json_encode($log_entry) . "\n";
 
-            return @file_put_contents($this->log_file, $encoded_entry, FILE_APPEND | LOCK_EX);
+            $existing = $this->filesystem->get_contents($this->log_file);
+
+            return $this->filesystem->put_contents($this->log_file, ($existing ?: '') . $encoded_entry, FS_CHMOD_FILE);
         } catch (Exception $th) {
             return false;
         }
