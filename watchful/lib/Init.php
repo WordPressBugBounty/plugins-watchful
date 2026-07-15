@@ -69,11 +69,11 @@ class Init
         $watchful_key = wp_generate_password(32, false);
 
         return array(
-            'watchful_version' => WATCHFUL_VERSION,
-            'watchfulSecretKey' => $watchful_key,
-            'watchful_disable_timestamp' => 0,
-            'watchful_maintenance' => 0,
-            'watchful_sso_authentication' => 1,
+            'watchful_version'            => WATCHFUL_VERSION,
+            'watchfulSecretKey'           => $watchful_key,
+            'watchful_disable_timestamp'  => 0,
+            'watchful_maintenance'        => 0,
+            'watchful_sso_authentication' => 0,
         );
     }
 
@@ -125,7 +125,7 @@ class Init
         wp_safe_redirect(
             add_query_arg(
                 array(
-                    'page' => 'watchful-setting',
+                    'page'     => 'watchful-setting',
                     'activate' => '1',
                 ),
                 admin_url('options-general.php')
@@ -157,9 +157,9 @@ class Init
 
         $settings['watchful_version'] = WATCHFUL_VERSION;
 
-        // Enable SSO authentication during plugin upgrades
+        // Keep SSO authentication disabled by default during plugin upgrades
         if (!isset($settings['watchful_sso_authentication'])) {
-            $settings['watchful_sso_authentication'] = 1;
+            $settings['watchful_sso_authentication'] = 0;
         }
 
         update_option('watchfulSettings', $settings);

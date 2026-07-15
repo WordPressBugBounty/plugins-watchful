@@ -34,8 +34,8 @@ class Connection
     public function get_signatures()
     {
         $config = array(
-            'url' => 'https://app.watchful.net/api/v1/signatures?limit=0',
-            'timeout' => 300,
+            'url'             => 'https://app.watchful.net/api/v1/signatures?limit=0',
+            'timeout'         => 300,
             'follow_location' => false,
         );
 
@@ -70,11 +70,11 @@ class Connection
         $response = wp_remote_get(
             $config['url'],
             array(
-                'timeout' => empty($config['timeout']) ? 60 : $config['timeout'],
+                'timeout'     => empty($config['timeout']) ? 60 : $config['timeout'],
                 'redirection' => 20,
-                'user-agent' => 'Watchful/1.0 (+http://www.watchful.net)',
-                'sslverify' => false,
-                'headers' => array('Expect' => ''),
+                'user-agent'  => 'Watchful/1.0 (+http://www.watchful.net)',
+                'sslverify'   => true,
+                'headers'     => array('Expect' => ''),
             )
         );
 
@@ -117,8 +117,8 @@ class Connection
     public function get_passwords()
     {
         $config = array(
-            'url' => 'http://installer.watchful.net/audit-assets/passwords.txt',
-            'timeout' => 300,
+            'url'             => 'http://installer.watchful.net/audit-assets/passwords.txt',
+            'timeout'         => 300,
             'follow_location' => false,
         );
 
@@ -141,8 +141,8 @@ class Connection
         }
 
         $config = array(
-            'url' => 'https://downloads.watchful.net/hashes/w'.$version.'.csv',
-            'timeout' => 300,
+            'url'             => 'https://downloads.watchful.net/hashes/w' . $version . '.csv',
+            'timeout'         => 300,
             'follow_location' => false,
         );
 

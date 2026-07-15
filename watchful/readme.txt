@@ -82,6 +82,9 @@ The Forever Free account at Watchful will allow you to manage and perform mainte
 Watchful launched in 2012 and began supporting WordPress in 2017.
 
 == Changelog ==
+= v2.0.15 =
+* Enforce SSL verification for the Watchful API requests.
+
 = v2.0.14 =
 * Fix an issue with the vulnerability scanner for specific hosting providers.
 
