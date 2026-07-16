@@ -7,6 +7,7 @@ use Watchful\Helpers\Files;
 use Watchful\Helpers\Logger;
 use Watchful\Restore\DirectoryHelper;
 use Watchful\Restore\StepResponse;
+use WP_Filesystem_Base;
 use ZipArchive;
 
 abstract class BaseRestoreFilesStep implements StepInterface
@@ -16,34 +17,17 @@ abstract class BaseRestoreFilesStep implements StepInterface
     protected $logger;
     protected $directory_helper;
 
-    abstract protected function get_extract_filename(): string;
-    abstract protected function get_delete_filename(): string;
-    abstract protected function get_log_name(): string;
-    abstract protected function get_error_status_code(): string;
-    abstract protected function get_completed_status_code(): string;
-    abstract protected function get_partial_status_code(): string;
-
     public function __construct(Files $file_helper, Logger $logger)
     {
         $this->logger = $logger;
         $this->directory_helper = new DirectoryHelper($file_helper, $logger);
     }
 
-    private function wp_filesystem(): \WP_Filesystem_Base
-    {
-        global $wp_filesystem;
-        if (!$wp_filesystem instanceof \WP_Filesystem_Base) {
-            require_once ABSPATH . 'wp-admin/includes/file.php';
-            WP_Filesystem();
-        }
-        return $wp_filesystem;
-    }
-
     public function run(string $backup_id, array $data): StepResponse
     {
         $this->logger->debug('Restore ' . $this->get_log_name(), [
             'backup_id' => $backup_id,
-            'data' => $data,
+            'data'      => $data,
         ]);
         try {
             $zip = $this->directory_helper->get_zip_archive($backup_id);
@@ -62,10 +46,10 @@ abstract class BaseRestoreFilesStep implements StepInterface
         $root_dir = ABSPATH;
 
         $stats = [
-            'copied_files' => 0,
+            'copied_files'  => 0,
             'deleted_files' => 0,
             'skipped_files' => 0,
-            'errors' => [],
+            'errors'        => [],
         ];
 
         $files_to_extract = $this->directory_helper->load_json($backup_id, $this->get_extract_filename());
@@ -76,13 +60,16 @@ abstract class BaseRestoreFilesStep implements StepInterface
 
         $zip->close();
 
+        $is_completed = empty($files_to_extract) && empty($files_to_delete);
+
         if (count($stats['errors']) > 0) {
-            $this->logger->warning('Restore ' . $this->get_log_name() . ' completed with errors', [
-                'errors' => $stats['errors'],
+            $this->logger->warning('Restore ' . $this->get_log_name() . ' processed with errors', [
+                'errors'    => $stats['errors'],
+                'completed' => $is_completed,
             ]);
 
             return new StepResponse(
-                true,
+                $is_completed,
                 $this->get_error_status_code(),
                 [
                     'stats' => $stats,
@@ -90,7 +77,7 @@ abstract class BaseRestoreFilesStep implements StepInterface
             );
         }
 
-        if (empty($files_to_extract) && empty($files_to_delete)) {
+        if ($is_completed) {
             $this->logger->info('Restore ' . $this->get_log_name() . ' completed successfully', [
                 'stats' => $stats,
             ]);
@@ -109,13 +96,19 @@ abstract class BaseRestoreFilesStep implements StepInterface
         ]);
 
         return new StepResponse(
-            true,
+            false,
             $this->get_partial_status_code(),
             [
                 'stats' => $stats,
             ]
         );
     }
+
+    abstract protected function get_log_name(): string;
+
+    abstract protected function get_extract_filename(): string;
+
+    abstract protected function get_delete_filename(): string;
 
     private function extract_files(
         ZipArchive $zip,
@@ -137,7 +130,7 @@ abstract class BaseRestoreFilesStep implements StepInterface
                 continue;
             }
 
-            $destination_path = $root_dir.$relative_path;
+            $destination_path = $root_dir . $relative_path;
             $destination_dir = dirname($destination_path);
 
             if (!file_exists($destination_dir)) {
@@ -190,7 +183,7 @@ abstract class BaseRestoreFilesStep implements StepInterface
             }
             $processed_files++;
 
-            $absolute_path = $root_dir.$relative_path;
+            $absolute_path = $root_dir . $relative_path;
             if (is_dir($absolute_path)) {
                 if ($this->wp_filesystem()->rmdir($absolute_path)) {
                     $stats['deleted_files']++;
@@ -208,4 +201,20 @@ abstract class BaseRestoreFilesStep implements StepInterface
         }
         $this->directory_helper->save_json($backup_id, $this->get_delete_filename(), $files_to_delete);
     }
+
+    private function wp_filesystem(): WP_Filesystem_Base
+    {
+        global $wp_filesystem;
+        if (!$wp_filesystem instanceof WP_Filesystem_Base) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+        return $wp_filesystem;
+    }
+
+    abstract protected function get_error_status_code(): string;
+
+    abstract protected function get_completed_status_code(): string;
+
+    abstract protected function get_partial_status_code(): string;
 }
