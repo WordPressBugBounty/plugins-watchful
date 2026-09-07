@@ -32,7 +32,7 @@ class HaveAdminsWeakPassword extends AbstractAudit
             $admin_index = $data['admin_index'];
             $password_index = $data['password_index'];
 
-            $start = $admin_index * 10000 + $password_index;
+            $start = $admin_index * count($this->passwords) + $password_index;
 
             return $this->response->send_timeout($start);
         }
@@ -56,8 +56,14 @@ class HaveAdminsWeakPassword extends AbstractAudit
         $admins = get_users(['role' => 'administrator']);
 
         $weak_admins = [];
-        $start_admin_index = (int)($start / 10000);
-        $start_password_index = $start - $start_admin_index * 10000;
+        $passwords_count = count($this->passwords);
+        if ($passwords_count === 0) {
+            return $weak_admins;
+        }
+
+        $start = (int) $start;
+        $start_admin_index = intdiv($start, $passwords_count);
+        $start_password_index = $start % $passwords_count;
 
         $this->logger->log(
             'Checking passwords',
@@ -74,17 +80,13 @@ class HaveAdminsWeakPassword extends AbstractAudit
             }
 
             $this->logger->log('Checking password for admin', [
-                'admin_index' => $admin,
+                'admin_index' => $admin_index,
             ]);
 
             foreach ($this->passwords as $password_index => $password) {
-                if ($password_index < $start_password_index) {
+                if ($admin_index === $start_admin_index && $password_index < $start_password_index) {
                     continue;
                 }
-
-                $this->logger->debug('Checking password', [
-                    'password_index' => $password_index,
-                ]);
 
                 if ($this->have_time() === false) {
                     // phpcs:disable WordPress.Security.EscapeOutput.ExceptionNotEscaped -- ExceptionHandler serialises this as JSON, not HTML.

@@ -25,14 +25,24 @@ use Watchful\Audit\Tests\HasDBPrefix;
 use Watchful\Audit\Tests\HasDbWeakPassword;
 use Watchful\Audit\Tests\HasDeactivatedPlugins;
 use Watchful\Audit\Tests\HasDeactivatedThemes;
+use Watchful\Audit\Tests\HasExpiringCertificate;
 use Watchful\Audit\Tests\HasInstallOnSubdirectory;
 use Watchful\Audit\Tests\HasPhpVersion;
+use Watchful\Audit\Tests\HasReadme;
+use Watchful\Audit\Tests\HasRootArchives;
+use Watchful\Audit\Tests\HasSecurityHeaders;
 use Watchful\Audit\Tests\HasThemesToUpdate;
 use Watchful\Audit\Tests\HasUnnecessaryLoginInfo;
+use Watchful\Audit\Tests\HasUnsupportedPhpVersion;
 use Watchful\Audit\Tests\HasWPAdminUser;
 use Watchful\Audit\Tests\HasWPHtaccess;
+use Watchful\Audit\Tests\HasWritablePhpFiles;
 use Watchful\Audit\Tests\HasWpVersion;
 use Watchful\Audit\Tests\HaveAdminsWeakPassword;
+use Watchful\Audit\Tests\IsFileEditorDisabled;
+use Watchful\Audit\Tests\IsHttpsEnforced;
+use Watchful\Audit\Tests\IsXmlRpcDisabled;
+use Watchful\Audit\Tests\IsDBDebugEnabled;
 use Watchful\Audit\Tests\IsDebugEnabled;
 use Watchful\Audit\Tests\IsDebugLogAvailable;
 use Watchful\Audit\Tests\IsScriptDebugEnabled;
@@ -78,6 +88,7 @@ class Audit implements BaseControllerInterface
         $start              = $request->get_param('start') ? (int)$request->get_param('start') : 0;
         $class_name         = $request->get_param('class_name');
         $max_execution_time = $request->get_param('max_execution_time') ? (int)$request->get_param('max_execution_time') : null;
+        $signatures_beta    = (bool)$request->get_param('signaturesBeta');
 
         $this->logger->info('Audit request received', ['task' => $task]);
 
@@ -86,7 +97,7 @@ class Audit implements BaseControllerInterface
                 $result = $this->auditConfiguration($start, $class_name, $max_execution_time);
                 break;
             case 'auditMalwareScanner':
-                $result = $this->auditMalwareScanner($start, $max_execution_time);
+                $result = $this->auditMalwareScanner($start, $max_execution_time, $signatures_beta);
                 break;
             case 'auditFoldersPermissions':
                 $result = $this->auditFoldersPermissions($start, $max_execution_time);
@@ -123,6 +134,15 @@ class Audit implements BaseControllerInterface
             HasDeactivatedThemes::class,
             HasInstallOnSubdirectory::class,
             HasPhpVersion::class,
+            HasUnsupportedPhpVersion::class,
+            HasWritablePhpFiles::class,
+            HasSecurityHeaders::class,
+            IsHttpsEnforced::class,
+            HasExpiringCertificate::class,
+            HasRootArchives::class,
+            IsFileEditorDisabled::class,
+            IsXmlRpcDisabled::class,
+            HasReadme::class,
             HasThemesToUpdate::class,
             HasUnnecessaryLoginInfo::class,
             HasWPAdminUser::class,
@@ -130,6 +150,7 @@ class Audit implements BaseControllerInterface
             HasWpVersion::class,
             HaveAdminsWeakPassword::class,
             IsDebugEnabled::class,
+            IsDBDebugEnabled::class,
             IsDebugLogAvailable::class,
             IsScriptDebugEnabled::class,
             IsUploadBrowsable::class,
@@ -188,11 +209,11 @@ class Audit implements BaseControllerInterface
     /**
      * @throws \Exception
      */
-    public function auditMalwareScanner(int $start, ?int $max_execution_time = null): stdClass
+    public function auditMalwareScanner(int $start, ?int $max_execution_time = null, bool $signatures_beta = false): stdClass
     {
         $scanner = new MalwareScanner(null, $max_execution_time);
 
-        return $scanner->run($start);
+        return $scanner->run($start, $signatures_beta);
     }
 
     public function auditFoldersPermissions(int $start, ?int $max_execution_time = null): stdClass

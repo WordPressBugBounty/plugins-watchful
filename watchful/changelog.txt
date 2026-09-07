@@ -1,3 +1,8 @@
+= v2.0.17 =
+* Improve backup restoration reliability.
+* Improve malware scanning and support advanced signature rules.
+* Add new WordPress security best-practice checks.
+
 = v2.0.16 =
 * Minor fix on Watchful backup restoration process.
 

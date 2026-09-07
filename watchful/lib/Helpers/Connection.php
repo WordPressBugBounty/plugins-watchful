@@ -27,14 +27,42 @@ class Connection
 {
 
     /**
+     * Base URL of the Watchful app. In dev the WATCHFUL_APP_URL environment
+     * variable can override the production host so the client talks to a
+     * local master instance.
+     *
+     * @return string
+     */
+    public static function get_app_url()
+    {
+        $app_url = getenv('WATCHFUL_APP_URL');
+        if (empty($app_url)) {
+            $app_url = isset($_SERVER['WATCHFUL_APP_URL'])
+                ? $_SERVER['WATCHFUL_APP_URL']
+                : (isset($_ENV['WATCHFUL_APP_URL']) ? $_ENV['WATCHFUL_APP_URL'] : '');
+        }
+
+        if (!empty($app_url)) {
+            return rtrim($app_url, '/');
+        }
+
+        return 'https://app.watchful.net';
+    }
+
+    /**
      * Get signatures for the connection.
      *
      * @return array
      */
-    public function get_signatures()
+    public function get_signatures(bool $beta = false)
     {
+        $url = self::get_app_url() . '/api/v1/signatures?limit=0';
+        if ($beta) {
+            $url .= '&beta=1';
+        }
+
         $config = array(
-            'url'             => 'https://app.watchful.net/api/v1/signatures?limit=0',
+            'url'             => $url,
             'timeout'         => 300,
             'follow_location' => false,
         );
