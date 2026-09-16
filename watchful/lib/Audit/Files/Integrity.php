@@ -34,7 +34,7 @@ class Integrity extends AbstractAudit
         while ($this->have_time() && $current < $data_count) {
             $file_path = $data[$current][0];
             $file_hash = $data[$current][1];
-            $full_path = str_replace('wordpress/', ABSPATH, $data[$current][0]);
+            $full_path = preg_replace('#^wordpress/#', ABSPATH, $data[$current][0]);
 
             $status = $this->check_integrity_file($full_path, $file_hash, $this->get_memory_limit_in_bytes());
 

@@ -180,9 +180,9 @@ class Connection
             throw new Exception('JMON_SCANNER_COREINTEGRITY_HASHFILE_NOT_FOUND');
         }
 
-        $data = str_getcsv($response->data, "\n"); // Parse the rows.
+        $data = preg_split('/\r\n|\n|\r/', trim($response->data));
         foreach ($data as &$row) {
-            $row = str_getcsv($row, ','); // Parse the items in rows.
+            $row = str_getcsv($row, ','); // Parse the items in each row.
         }
 
         return $data;

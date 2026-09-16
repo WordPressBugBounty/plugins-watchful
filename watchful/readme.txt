@@ -4,7 +4,7 @@ Tags: manage multiple sites, backup, site management, remote administration, mon
 Requires at least: 4.6
 Tested up to: 7.1
 Requires PHP: 7.2
-Stable tag: 2.0.13
+Stable tag: 2.0.18
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -82,6 +82,10 @@ The Forever Free account at Watchful will allow you to manage and perform mainte
 Watchful launched in 2012 and began supporting WordPress in 2017.
 
 == Changelog ==
+= v2.0.18 =
+* Fix false positives for existing WordPress core files during integrity audits.
+* Improve theme best-practice audits to recognize active child themes and their required parent themes.
+
 = v2.0.17 =
 * Improve backup restoration reliability.
 * Improve malware scanning and support advanced signature rules.

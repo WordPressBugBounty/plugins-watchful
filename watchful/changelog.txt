@@ -1,3 +1,7 @@
+= v2.0.18 =
+* Fix false positives for existing WordPress core files during integrity audits.
+* Improve theme best-practice audits to recognize active child themes and their required parent themes.
+
 = v2.0.17 =
 * Improve backup restoration reliability.
 * Improve malware scanning and support advanced signature rules.
