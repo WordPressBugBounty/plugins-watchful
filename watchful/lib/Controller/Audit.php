@@ -38,7 +38,6 @@ use Watchful\Audit\Tests\HasWPAdminUser;
 use Watchful\Audit\Tests\HasWPHtaccess;
 use Watchful\Audit\Tests\HasWritablePhpFiles;
 use Watchful\Audit\Tests\HasWpVersion;
-use Watchful\Audit\Tests\HaveAdminsWeakPassword;
 use Watchful\Audit\Tests\IsFileEditorDisabled;
 use Watchful\Audit\Tests\IsHttpsEnforced;
 use Watchful\Audit\Tests\IsXmlRpcDisabled;
@@ -148,7 +147,6 @@ class Audit implements BaseControllerInterface
             HasWPAdminUser::class,
             HasWPHtaccess::class,
             HasWpVersion::class,
-            HaveAdminsWeakPassword::class,
             IsDebugEnabled::class,
             IsDBDebugEnabled::class,
             IsDebugLogAvailable::class,

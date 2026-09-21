@@ -1,3 +1,9 @@
+= v2.0.20 =
+* Review security audit tests to align with current standards.
+
+= v2.0.19 =
+* Detect and install WordPress core updates offered as automatic updates, including minor and security releases.
+
 = v2.0.18 =
 * Fix false positives for existing WordPress core files during integrity audits.
 * Improve theme best-practice audits to recognize active child themes and their required parent themes.

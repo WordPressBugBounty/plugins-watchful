@@ -117,16 +117,7 @@ class Core implements BaseControllerInterface
             throw new Exception('filesystem not writable', 403);
         }
 
-        // Force refresh.
-        wp_version_check();
-
-        $updates = get_core_updates();
-
-        if (is_wp_error($updates) || !$updates) {
-            throw new Exception('core is already up to date', 400);
-        }
-
-        $update = reset($updates);
+        $update = $this->get_latest_core_update();
 
         if (!$update) {
             throw new Exception('core is already up to date', 400);
@@ -227,14 +218,41 @@ class Core implements BaseControllerInterface
     {
         require_once ABSPATH.'/wp-admin/includes/update.php';
 
-        if (function_exists('get_core_updates')) {
-            $core_update_response = get_core_updates();
-            if (!empty($core_update_response)) {
-                return $core_update_response[0]->version;
+        $update = $this->get_latest_core_update();
+        if ($update) {
+            return $update->version;
+        }
+
+        return static::get_wp_version();
+    }
+
+    private function get_latest_core_update()
+    {
+        require_once ABSPATH.'/wp-admin/includes/update.php';
+
+        wp_version_check();
+        $core_updates = get_site_transient('update_core');
+        if (empty($core_updates->updates) || !is_array($core_updates->updates)) {
+            return false;
+        }
+
+        $current_version = static::get_wp_version();
+        $latest_update = false;
+        foreach ($core_updates->updates as $update) {
+            if (
+                !isset($update->version, $update->response)
+                || !in_array($update->response, ['upgrade', 'autoupdate'], true)
+                || version_compare($update->version, $current_version, '<=')
+            ) {
+                continue;
+            }
+
+            if (!$latest_update || version_compare($update->version, $latest_update->version, '>')) {
+                $latest_update = $update;
             }
         }
 
-        return get_bloginfo('version');
+        return $latest_update;
     }
 
     /**
