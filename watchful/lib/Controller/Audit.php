@@ -30,13 +30,11 @@ use Watchful\Audit\Tests\HasInstallOnSubdirectory;
 use Watchful\Audit\Tests\HasPhpVersion;
 use Watchful\Audit\Tests\HasReadme;
 use Watchful\Audit\Tests\HasRootArchives;
-use Watchful\Audit\Tests\HasSecurityHeaders;
 use Watchful\Audit\Tests\HasThemesToUpdate;
 use Watchful\Audit\Tests\HasUnnecessaryLoginInfo;
 use Watchful\Audit\Tests\HasUnsupportedPhpVersion;
 use Watchful\Audit\Tests\HasWPAdminUser;
 use Watchful\Audit\Tests\HasWPHtaccess;
-use Watchful\Audit\Tests\HasWritablePhpFiles;
 use Watchful\Audit\Tests\HasWpVersion;
 use Watchful\Audit\Tests\IsFileEditorDisabled;
 use Watchful\Audit\Tests\IsHttpsEnforced;
@@ -134,8 +132,6 @@ class Audit implements BaseControllerInterface
             HasInstallOnSubdirectory::class,
             HasPhpVersion::class,
             HasUnsupportedPhpVersion::class,
-            HasWritablePhpFiles::class,
-            HasSecurityHeaders::class,
             IsHttpsEnforced::class,
             HasExpiringCertificate::class,
             HasRootArchives::class,

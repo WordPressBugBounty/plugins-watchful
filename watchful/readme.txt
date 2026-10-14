@@ -4,7 +4,7 @@ Tags: manage multiple sites, backup, site management, remote administration, mon
 Requires at least: 4.6
 Tested up to: 7.1
 Requires PHP: 7.2
-Stable tag: 2.0.20
+Stable tag: 2.0.21
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -82,6 +82,12 @@ The Forever Free account at Watchful will allow you to manage and perform mainte
 Watchful launched in 2012 and began supporting WordPress in 2017.
 
 == Changelog ==
+= v2.0.21 =
+* Remove unused remote file-management endpoints for reading, writing, deleting files and changing permissions.
+* Move security header checks to the Watchful backend and report X-Frame-Options, Content-Security-Policy and Strict-Transport-Security independently.
+* Remove the duplicated client-side security header check.
+* Remove obsolete check.
+
 = v2.0.20 =
 * Review security audit tests to align with current standards.
 

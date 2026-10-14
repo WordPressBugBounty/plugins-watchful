@@ -15,7 +15,6 @@ namespace Watchful;
 use Watchful\Controller\Audit;
 use Watchful\Controller\Backups;
 use Watchful\Controller\Core;
-use Watchful\Controller\Files;
 use Watchful\Controller\Logs;
 use Watchful\Controller\Plugins;
 use Watchful\Controller\Restore;
@@ -91,11 +90,8 @@ class Routes
         $core = new Core();
         $core->register_routes();
 
-        $files = new Files();
-        $files->register_routes();
-
-        $files = new Tests();
-        $files->register_routes();
+        $tests = new Tests();
+        $tests->register_routes();
 
         $backups = new Backups();
         $backups->register_routes();

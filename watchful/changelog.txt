@@ -1,3 +1,9 @@
+= v2.0.21 =
+* Remove unused remote file-management endpoints for reading, writing, deleting files and changing permissions.
+* Move security header checks to the Watchful backend and report X-Frame-Options, Content-Security-Policy and Strict-Transport-Security independently.
+* Remove the duplicated client-side security header check.
+* Remove obsolete check.
+
 = v2.0.20 =
 * Review security audit tests to align with current standards.
 
